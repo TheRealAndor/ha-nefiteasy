@@ -460,9 +460,7 @@ class NefitEasy(DataUpdateCoordinator):
             return await self._async_poll()
         except Exception as ex:
             self.connected_state = STATE_INIT
-            raise UpdateFailed(
-                f"Error communicating with Nefit Easy: {ex!r}"
-            ) from ex
+            raise UpdateFailed(f"Error communicating with Nefit Easy: {ex!r}") from ex
 
     async def _async_poll(self) -> dict[str, Any]:
         """Request the status and all registered endpoints."""

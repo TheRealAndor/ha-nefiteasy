@@ -1,6 +1,9 @@
 {
   "domain": "nefiteasy",
   "name": "Nefit Easy (Bosch) – Stable",
+  "categories": [
+    "climate.thermostats_heating"
+  ],
   "codeowners": [
     "@TheRealAndor",
     "@ksya",

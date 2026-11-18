@@ -91,17 +91,17 @@ class NefitThermostat(CoordinatorEntity, ClimateEntity):
         return str(self._config[CONF_NAME])
 
     @property
-    def temperature_unit(self) -> str:
+    def native_temperature_unit(self) -> str:
         """Return the unit of measurement."""
         return self._unit_of_measurement
 
     @property
-    def current_temperature(self) -> float:
+    def native_current_temperature(self) -> float:
         """Return the current temperature."""
         return float(self.coordinator.data.get("inhouse_temperature"))
 
     @property
-    def target_temperature(self) -> float:
+    def native_target_temperature(self) -> float:
         """Return target temperature."""
         return float(self.coordinator.data.get("temp_setpoint"))
 

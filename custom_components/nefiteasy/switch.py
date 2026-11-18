@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from types import MappingProxyType
 from typing import Any
@@ -30,6 +31,8 @@ async def async_setup_entry(
     client = hass.data[DOMAIN][config_entry.entry_id]["client"]
     data = config_entry.data
 
+    presence_description = None
+
     for description in SWITCHES:
         if description.key == "hot_water":
             entities.append(NefitHotWater(description, client, data))
@@ -38,22 +41,36 @@ async def async_setup_entry(
         elif description.key == "weather_dependent":
             entities.append(NefitSwitch(description, client, data, "weather", "room"))
         elif description.key == "home_entrance_detection":
-            await setup_home_entrance_detection(
-                entities,
-                client,
-                data,
-                description.key,
-                description.name,
-                description.icon,
-            )
+            presence_description = description
         else:
             entities.append(NefitSwitch(description, client, data))
 
-    async_add_entities(entities, True)
+    # Values arrive with the coordinator refresh that runs right after all
+    # platforms are set up; refreshing here would make platform setup wait
+    # for a complete poll of the Bosch cloud.
+    async_add_entities(entities)
+
+    if presence_description is not None:
+        # Probing the presence profiles takes up to 20 sequential cloud
+        # requests. Do it in the background so platform setup is not held
+        # up ("Setup of switch platform nefiteasy is taking over 10 seconds")
+        # and add the switches once they are known.
+        config_entry.async_create_background_task(
+            hass,
+            setup_home_entrance_detection(
+                async_add_entities,
+                client,
+                data,
+                presence_description.key,
+                presence_description.name,
+                presence_description.icon,
+            ),
+            name=f"nefiteasy presence detection {config_entry.entry_id}",
+        )
 
 
 async def setup_home_entrance_detection(
-    entities: list[NefitEntity],
+    async_add_entities: AddEntitiesCallback,
     client: NefitEasy,
     data: MappingProxyType[str, Any],
     basekey: str,
@@ -61,9 +78,19 @@ async def setup_home_entrance_detection(
     baseicon: str,
 ) -> None:
     """Home entrance detection setup."""
+    entities: list[NefitEntity] = []
+    endpoint = "/ecus/rrc/homeentrancedetection"
+
     for i in range(0, 10):
-        endpoint = "/ecus/rrc/homeentrancedetection"
-        name = await client.async_init_presence(endpoint, i)
+        try:
+            name = await client.async_init_presence(endpoint, i)
+        except asyncio.TimeoutError:
+            # One slow answer should not drop the other profiles.
+            _LOGGER.debug("No answer for presence profile %s, skipping.", i)
+            continue
+        except Exception as ex:  # connection lost during probing
+            _LOGGER.debug("Stopped probing presence profiles at %s: %r", i, ex)
+            break
 
         if name is not None:
             description = NefitSwitchEntityDescription(
@@ -73,6 +100,11 @@ async def setup_home_entrance_detection(
                 icon=baseicon,
             )
             entities.append(NefitSwitch(description, client, data))
+
+    if entities:
+        async_add_entities(entities)
+        # Fetch the values of the new switches now instead of at the next poll.
+        await client.async_request_refresh()
 
 
 class NefitSwitch(NefitEntity, SwitchEntity):

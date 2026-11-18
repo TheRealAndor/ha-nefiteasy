@@ -41,13 +41,11 @@ Based on upstream version 0.4.10. The changes focus on the connection to the Bos
 
 ### Home Assistant compatibility
 * **Authentication failure notifications work again:** `hass.components.persistent_notification` was removed from Home Assistant and raised `AttributeError`; replaced by `persistent_notification.async_create`.
-* Climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`, the climate API introduced in Home Assistant 2026.11.
+* Climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`, the climate API introduced in Home Assistant 2026.11 (older versions keep working through the old property names).
 * Removed the deprecated `CONNECTION_CLASS` from the config flow.
 * Presence lookups use `.get()` so a missing key no longer raises `KeyError`.
 
 ## Installation
-
-> **Requires Home Assistant 2026.11.0 or newer.**
 
 ### HACS (recommended)
 1. Open HACS and go to **Custom repositories** (three-dot menu, top right).

@@ -152,7 +152,8 @@ async def nefit_wrapper_precense(nefit_mock, hass, nefit_config):
     }
 
     await hass.config_entries.async_setup(config_entry.entry_id)
-    await hass.async_block_till_done()
+    # Presence switches are added by a background task after platform setup.
+    await hass.async_block_till_done(wait_background_tasks=True)
 
     return client
 

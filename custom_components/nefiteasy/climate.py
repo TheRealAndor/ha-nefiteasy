@@ -105,6 +105,12 @@ class NefitThermostat(CoordinatorEntity, ClimateEntity):
         """Return target temperature."""
         return float(self.coordinator.data.get("temp_setpoint"))
 
+    if not hasattr(ClimateEntity, "native_current_temperature"):
+        # Home Assistant before 2026.11 only knows the non-native names.
+        temperature_unit = native_temperature_unit
+        current_temperature = native_current_temperature
+        target_temperature = native_target_temperature
+
     @property
     def hvac_modes(self) -> list[str]:
         """List of available modes."""

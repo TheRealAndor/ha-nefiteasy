@@ -43,11 +43,71 @@
 3. Search for **Nefit Easy**, install it and restart Home Assistant.
 
 > [!TIP]
-> **Coming from ksya/ha-nefiteasy?** Remove that repository in HACS first (keep the integration itself), then install this one and restart. Because the domain is the same, everything keeps working.
+> **Coming from ksya/ha-nefiteasy?** Follow [Migrating from ksya/ha-nefiteasy](#-migrating-from-ksyaha-nefiteasy) below, so your configuration and entities stay.
 
 ### Manual
 
 Copy `custom_components/nefiteasy/` into the `custom_components` folder of your Home Assistant configuration and restart.
+
+## 🔄 Migrating from ksya/ha-nefiteasy
+
+Both integrations use the same `nefiteasy` folder and domain, so your configuration, entities and history stay. Only the source in HACS (or the Marketplace) has to change.
+
+> [!WARNING]
+> **Never choose "Remove and uninstall"** (*Verwijderen en de-installeren*) on the ksya entry. That also deletes your Nefit configuration, including all entities and their history.
+
+1. **Make a backup** under *Settings → System → Backups*.
+2. **Add this repository** as a custom repository (type **Integration**) and install **Nefit Easy (Bosch)**. If that works, restart Home Assistant and you are done.
+3. If the install is refused with *"The nefiteasy directory belongs to ksya/ha-nefiteasy"*, the ksya entry still claims the folder. Release it as follows.
+
+<details>
+<summary><b>Release the folder from the ksya entry</b></summary>
+
+**a. Stop Home Assistant Core** from the console of the Home Assistant machine or an SSH connection from your computer (with the SSH add-on, its port must be enabled):
+
+```
+ha core stop
+```
+
+> [!IMPORTANT]
+> Don't use the web terminal inside Home Assistant (*Terminal & SSH* in the sidebar): it runs through Home Assistant Core and stops working as soon as Core is stopped, so you could not start it again from there.
+
+Home Assistant must be stopped, otherwise it overwrites the change below.
+
+**b. Mark the ksya entry as not installed.** The file is `.storage/marketplace.repositories` in your configuration folder (`/config` or `/homeassistant`, depending on the add-on). Make a copy first, then change only the entry with `"full_name": "ksya/ha-nefiteasy"`:
+
+```diff
+   "full_name": "ksya/ha-nefiteasy",
+   ...
+-  "installed_commit": "28880e4",
+-  "installed": true,
++  "installed": false,
+   ...
+-  "version_installed": "v0.4.10",
+```
+
+Or in one go with `jq`:
+
+```bash
+cd /config/.storage
+cp marketplace.repositories marketplace.repositories.bak
+jq '(.data[] | select(.full_name == "ksya/ha-nefiteasy"))
+    |= (.installed = false | del(.version_installed, .installed_commit))'   marketplace.repositories.bak > marketplace.repositories
+```
+
+**c. Start Home Assistant Core** again, from the console or SSH:
+
+```
+ha core start
+```
+
+**d. Install Nefit Easy (Bosch)** from this repository. The red message is gone now. Restart Home Assistant once more afterwards.
+
+If something goes wrong, stop Core again, put `marketplace.repositories.bak` back and start Core.
+
+</details>
+
+After the switch, updates come from this repository. The ksya entry usually disappears from the list by itself. If it is still there and removing it again offers to delete your configuration, cancel and leave it.
 
 ## ⚙️ Configuration
 

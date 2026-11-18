@@ -1,6 +1,8 @@
 # ha-nefiteasy (maintained fork)
 Nefit Easy connection for Home Assistant
 
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20me-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/therealandor) [![PayPal](https://img.shields.io/badge/PayPal-Donate-00457C?logo=paypal&logoColor=white)](https://paypal.me/andorklink)
+
 > **This is a personal, maintained fork of [ksya/ha-nefiteasy](https://github.com/ksya/ha-nefiteasy).**
 > I keep this repository for my own Home Assistant installation, but anyone is welcome to use it.
 > I try to solve issues reported here myself and keep the integration actively up to date for as long as I still have a Nefit Easy thermostat myself.
@@ -28,6 +30,7 @@ Based on upstream version 0.4.10. The changes focus on the connection to the Bos
 * **One connection procedure at a time:** an `asyncio.Lock` replaces the `is_connecting` flag. A second caller (poll or `session_end`) waits for the running attempt and uses its result instead of starting another one.
 * **`session_end` during our own reconnect is ignored**, since that is the stale transport we closed ourselves.
 * **A slow optional endpoint no longer fails the whole update:** if `uiStatus` answered but another endpoint times out, its previous value is kept instead of making every entity unavailable.
+* **No more log spam on every reconnect:** the Bosch/Nefit XMPP server sends no version attribute in its stream header, so slixmpp logs *"Legacy XMPP 0.9 protocol detected"* on each (re)connect. This harmless warning is now filtered out; only this specific message from `slixmpp.basexmpp` is hidden.
 * **Clearer error messages:** the reason a reconnect failed (no XMPP session within 29 s, thermostat did not answer, connection closed) is logged and shown in `UpdateFailed`. Timeouts are named constants.
 
 ### Startup

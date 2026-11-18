@@ -5,7 +5,7 @@ All configuration can be done from within Home Assistant:
 1. Go to Settings
 2. Go to Integrations
 3. At the bottom right, click Add Integration
-4. Search for "Nefit" -> Nefit Easy Bosch Thermostat
+4. Search for "Nefit" -> Nefit Easy (Bosch) – Stable
 5. Fill in your serial number, access key and password
 6. Save
 

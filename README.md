@@ -41,11 +41,13 @@ Based on upstream version 0.4.10. The changes focus on the connection to the Bos
 
 ### Home Assistant compatibility
 * **Authentication failure notifications work again:** `hass.components.persistent_notification` was removed from Home Assistant and raised `AttributeError`; replaced by `persistent_notification.async_create`.
-* Climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`.
+* Climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`, the climate API introduced in Home Assistant 2026.11.
 * Removed the deprecated `CONNECTION_CLASS` from the config flow.
 * Presence lookups use `.get()` so a missing key no longer raises `KeyError`.
 
 ## Installation
+
+> **Requires Home Assistant 2026.11.0 or newer.**
 
 ### HACS (recommended)
 1. Open HACS and go to **Custom repositories** (three-dot menu, top right).
@@ -64,7 +66,7 @@ All configuration can be done from within Home Assistant:
 1. Go to Settings
 2. Go to Integrations
 3. At the bottom right, click Add Integration
-4. Search for "Nefit" -> Nefit Easy Bosch Thermostat
+4. Search for "Nefit" -> Nefit Easy (Bosch) – Stable
 5. Fill in your serial number, access key and password
 6. Save
 

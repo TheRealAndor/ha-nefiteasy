@@ -51,14 +51,17 @@ Copy `custom_components/nefiteasy/` into the `custom_components` folder of your 
 
 ## 🔄 Migrating from ksya/ha-nefiteasy
 
-Both integrations use the same `nefiteasy` folder and domain, so your configuration, entities and history stay. Only the source in HACS (or the Marketplace) has to change.
+Both integrations use the same `nefiteasy` folder and domain, so your configuration, entities and history stay. Only the source of the integration has to change. The steps depend on where you installed ksya/ha-nefiteasy from: the **Marketplace** built into recent Home Assistant versions, or **HACS**.
+
+Make a backup first under *Settings → System → Backups*.
+
+### Home Assistant Marketplace
 
 > [!WARNING]
 > **Never choose "Remove and uninstall"** (*Verwijderen en de-installeren*) on the ksya entry. That also deletes your Nefit configuration, including all entities and their history.
 
-1. **Make a backup** under *Settings → System → Backups*.
-2. **Add this repository** as a custom repository (type **Integration**) and install **Nefit Easy (Bosch)**. If that works, restart Home Assistant and you are done.
-3. If the install is refused with *"The nefiteasy directory belongs to ksya/ha-nefiteasy"*, the ksya entry still claims the folder. Release it as follows.
+1. **Add this repository** as a custom repository (type **Integration**) and install **Nefit Easy (Bosch)**. If that works, restart Home Assistant and you are done.
+2. If the install is refused with *"The nefiteasy directory belongs to ksya/ha-nefiteasy"*, the ksya entry still claims the folder. Release it as follows.
 
 <details>
 <summary><b>Release the folder from the ksya entry</b></summary>
@@ -108,6 +111,16 @@ If something goes wrong, stop Core again, put `marketplace.repositories.bak` bac
 </details>
 
 After the switch, updates come from this repository. The ksya entry usually disappears from the list by itself. If it is still there and removing it again offers to delete your configuration, cancel and leave it.
+
+### HACS
+
+In HACS, removing a repository deletes the files in `custom_components/nefiteasy`, but not your configuration. The order matters: remove ksya first, then install this repository. The other way around, HACS deletes the files of this repository again.
+
+1. In HACS, open **Nefit Easy** (ksya/ha-nefiteasy) and choose **Remove**. Don't restart Home Assistant yet.
+2. Add `https://github.com/TheRealAndor/ha-nefiteasy` as a custom repository (type **Integration**) and download **Nefit Easy (Bosch)**.
+3. Restart Home Assistant. Your Nefit configuration loads again with the new version.
+
+If you restarted between step 1 and 2 by accident, the integration shows as *not loaded*. Your configuration is still there; it loads again after step 2 and 3.
 
 ## ⚙️ Configuration
 

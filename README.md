@@ -41,7 +41,7 @@ Based on upstream version 0.4.10. The changes focus on the connection to the Bos
 
 ### Home Assistant compatibility
 * **Authentication failure notifications work again:** `hass.components.persistent_notification` was removed from Home Assistant and raised `AttributeError`; replaced by `persistent_notification.async_create`.
-* Climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`, the climate API introduced in Home Assistant 2026.11 (older versions keep working through the old property names).
+* **No deprecation warnings on Home Assistant 2026.11:** the climate entity uses `native_temperature_unit`, `native_current_temperature` and `native_target_temperature`. The original logs *"…NefitThermostat provides the deprecated temperature_unit, this will stop working in Home Assistant 2027.11…"* (and the same for `current_temperature` and `target_temperature`), and its thermostat will stop working in 2027.11. Older Home Assistant versions keep working through the old property names.
 * Removed the deprecated `CONNECTION_CLASS` from the config flow.
 * Presence lookups use `.get()` so a missing key no longer raises `KeyError`.
 

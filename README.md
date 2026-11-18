@@ -38,7 +38,11 @@
 
 ### HACS (recommended)
 
-1. In HACS, open the menu (⋮, top right) → **Custom repositories**.
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=TheRealAndor&repository=ha-nefiteasy&category=integration)
+
+Or by hand:
+
+1. In HACS (or the Marketplace), open the menu (⋮, top right) → **Custom repositories**.
 2. Add `https://github.com/TheRealAndor/ha-nefiteasy` with type **Integration**.
 3. Search for **Nefit Easy**, install it and restart Home Assistant.
 
@@ -124,7 +128,9 @@ If you restarted between step 1 and 2 by accident, the integration shows as *not
 
 ## ⚙️ Configuration
 
-1. Go to **Settings → Devices & services → Add integration** and search for **Nefit Easy (Bosch)**.
+[![Open your Home Assistant instance and start setting up Nefit Easy (Bosch).](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nefiteasy)
+
+1. Use the button above, or go to **Settings → Devices & services → Add integration** and search for **Nefit Easy (Bosch)**.
 2. Enter the **serial number**, **access key** and **password** of your thermostat, *without spaces*. Serial number and access key are on the sticker of the thermostat; the password is the one you set in the Nefit Easy app.
 3. Choose the minimum and maximum temperature and the temperature step for the thermostat.
 

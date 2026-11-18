@@ -35,6 +35,10 @@ STATE_CONNECTION_VERIFIED = "connection_verified"
 STATE_INIT = "initializing"
 STATE_ERROR_AUTH = "authentication_failed"
 
+# Dispatcher signal (formatted with the serial) sent when the connection
+# health of a thermostat changes.
+SIGNAL_CONNECTION_STATUS = "nefiteasy_connection_status_{}"
+
 AUTH_ERROR_PASSWORD = "auth_error_password"
 AUTH_ERROR_CREDENTIALS = "auth_error_credentials"
 

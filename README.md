@@ -32,6 +32,11 @@ Based on upstream version 0.4.10. The changes focus on the connection to the Bos
 * **A slow optional endpoint no longer fails the whole update:** if `uiStatus` answered but another endpoint times out, its previous value is kept instead of making every entity unavailable.
 * **No more log spam on every reconnect:** the Bosch/Nefit XMPP server sends no version attribute in its stream header, so slixmpp logs *"Legacy XMPP 0.9 protocol detected"* on each (re)connect. This harmless warning is now filtered out; only this specific message from `slixmpp.basexmpp` is hidden.
 * **Clearer error messages:** the reason a reconnect failed (no XMPP session within 29 s, thermostat did not answer, connection closed) is logged and shown in `UpdateFailed`. Timeouts are named constants.
+* **Longer request timeout (20 s instead of 9 s):** the Bosch cloud is often slow without being down. Measurements in [ksya/ha-nefiteasy#462](https://github.com/ksya/ha-nefiteasy/issues/462) showed replies of 9–20 s on sessions that kept working; with 9 s each of those was treated as a lost session and caused a retry or reconnect.
+
+### Connection sensor and diagnostics
+* **`binary_sensor` "Bosch cloud connection"** (diagnostic, enabled by default): `on` while Home Assistant gets answers from the thermostat. It stays available during an outage, unlike the other entities, so you can see when the connection was lost and why, and use it in automations or notifications. Attributes: `last_success`, `disconnected_since`, `last_error`, `last_error_at` and `reconnects`.
+* **Diagnostics download** (*Settings → Devices & services → Nefit Easy → ⋮ → Download diagnostics*): connection state, last errors, reconnect count, timeouts, polled endpoints and the current values. Serial number, access key, password and the names of presence detection phones are removed. Please attach this file when you open an issue.
 
 ### Startup
 * **Faster platform setup:** probing the 10 presence (home entrance detection) profiles takes up to 20 sequential cloud requests. This now runs as a background task, which fixes *"Setup of switch platform nefiteasy is taking over 10 seconds"*. The presence switches are added as soon as they are known.
@@ -140,7 +145,7 @@ Some entities are disabled by default, if needed they can be enabled. Entities t
 ```
 
 ## Debugging problems
-Turn on debug for both aionefit as custom_components.nefiteasy:
+Download the diagnostics (see above) and check the *Bosch cloud connection* sensor first. For more detail, turn on debug logging for both aionefit and custom_components.nefiteasy:
 ```
 logger:
   default: info

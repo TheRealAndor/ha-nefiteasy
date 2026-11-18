@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from homeassistant.components.binary_sensor import BinarySensorEntityDescription
 from homeassistant.components.number import NumberEntityDescription
 from homeassistant.components.select import SelectEntityDescription
 from homeassistant.components.sensor import SensorEntityDescription
@@ -19,6 +20,13 @@ class NefitEntityDescription(EntityDescription):
     url: str | None = None
     short: str | None = None
     unit: str | None = None
+
+
+@dataclass
+class NefitBinarySensorEntityDescription(
+    NefitEntityDescription, BinarySensorEntityDescription
+):
+    """Represents a nefiteasy binary sensor."""
 
 
 @dataclass

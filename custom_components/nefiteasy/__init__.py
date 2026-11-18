@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 import re
 from typing import Any
@@ -14,7 +14,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 import slixmpp
 
 from .const import (
@@ -22,6 +24,7 @@ from .const import (
     CONF_PASSWORD,
     CONF_SERIAL,
     DOMAIN,
+    SIGNAL_CONNECTION_STATUS,
     STATE_CONNECTED,
     STATE_CONNECTION_VERIFIED,
     STATE_ERROR_AUTH,
@@ -48,12 +51,15 @@ class _SuppressLegacyXmppWarning(logging.Filter):
 logging.getLogger("slixmpp.basexmpp").addFilter(_SuppressLegacyXmppWarning())
 
 
-DOMAINS = ["climate", "select", "sensor", "switch", "number"]
+DOMAINS = ["binary_sensor", "climate", "select", "sensor", "switch", "number"]
 
 # Seconds to wait for the XMPP session and for the first test message.
 CONNECT_TIMEOUT = 29.0
-# Seconds to wait for the answer to a single GET request.
-REQUEST_TIMEOUT = 9.0
+# Seconds to wait for the answer to a single GET request. The Bosch cloud is
+# often slow without being down: measurements in ksya/ha-nefiteasy#462 showed
+# replies of 9-20 s on sessions that kept working. With a shorter timeout each
+# of those counts as a lost session and triggers a retry or a reconnect.
+REQUEST_TIMEOUT = 20.0
 # Seconds to wait for a stale transport to close before reconnecting.
 TEARDOWN_TIMEOUT = 5.0
 # Name slixmpp uses for its repeating whitespace keepalive. Scheduling it a
@@ -78,6 +84,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             f"Unable to verify connection to {credentials[CONF_SERIAL]}, "
             f"state: {client.connected_state}"
         )
+
+    # The connection was just verified; let the connection sensor start as
+    # connected instead of waiting for the first poll.
+    client.record_update_result(None)
 
     await hass.config_entries.async_forward_entry_setups(entry, DOMAINS)
 
@@ -112,6 +122,15 @@ class NefitEasy(DataUpdateCoordinator):
         self._lock = asyncio.Lock()
         self._connect_lock = asyncio.Lock()
         self.last_connect_error: str | None = None
+        # Connection health, shown by the connection binary sensor and in the
+        # diagnostics download.
+        self.cloud_connected = False
+        self.last_error: str | None = None
+        self.last_error_at: datetime | None = None
+        self.last_success_at: datetime | None = None
+        self.disconnected_since: datetime | None = None
+        self.reconnect_count = 0
+        self._ever_verified = False
         self.hass = hass
         self.connected_state = STATE_INIT
         self.expected_end = False
@@ -277,6 +296,9 @@ class NefitEasy(DataUpdateCoordinator):
         if self.connected_state == STATE_CONNECTED:
             self.connected_state = STATE_CONNECTION_VERIFIED
             self.last_connect_error = None
+            if self._ever_verified:
+                self.reconnect_count += 1
+            self._ever_verified = True
             _LOGGER.debug("Successfully verified connection.")
 
     async def _async_try_late_session(self) -> bool:
@@ -402,7 +424,70 @@ class NefitEasy(DataUpdateCoordinator):
         else:
             self.async_set_updated_data(self._data)
 
+    @property
+    def registered_urls(self) -> list[str]:
+        """Return the endpoints polled on every update."""
+        return sorted(self._urls)
+
+    @property
+    def status_keys(self) -> dict[str, Any]:
+        """Return the uiStatus fields mapped to entity keys."""
+        return dict(self._status_keys)
+
+    def record_update_result(self, error: str | None) -> None:
+        """Track connection health and tell the connection sensor.
+
+        The coordinator does not notify entities after a second failed update
+        in a row, so the connection sensor gets its own signal; otherwise its
+        error attributes would stop updating during an outage.
+        """
+        now = dt_util.utcnow()
+        if error is None:
+            self.cloud_connected = True
+            self.last_success_at = now
+            self.disconnected_since = None
+        else:
+            if self.cloud_connected or self.disconnected_since is None:
+                self.disconnected_since = now
+            self.cloud_connected = False
+            self.last_error = error
+            self.last_error_at = now
+
+        async_dispatcher_send(self.hass, SIGNAL_CONNECTION_STATUS.format(self.serial))
+
+    def connection_diagnostics(self) -> dict[str, Any]:
+        """Return the connection state for the diagnostics download."""
+        client = self.nefit.xmppclient
+        return {
+            "connected_state": self.connected_state,
+            "cloud_connected": self.cloud_connected,
+            "xmpp_transport_connected": bool(client.is_connected()),
+            "is_connecting": self.is_connecting,
+            "last_success_at": self.last_success_at,
+            "disconnected_since": self.disconnected_since,
+            "last_error": self.last_error,
+            "last_error_at": self.last_error_at,
+            "last_connect_error": self.last_connect_error,
+            "reconnect_count": self.reconnect_count,
+            "last_update_success": self.last_update_success,
+            "update_interval_seconds": (
+                self.update_interval.total_seconds() if self.update_interval else None
+            ),
+            "connect_timeout_seconds": CONNECT_TIMEOUT,
+            "request_timeout_seconds": REQUEST_TIMEOUT,
+        }
+
     async def _async_update_data(self) -> dict[str, Any]:
+        """Update data and record the outcome for the connection sensor."""
+        try:
+            data = await self._async_update_data_inner()
+        except Exception as ex:
+            self.record_update_result(str(ex) or repr(ex))
+            raise
+        self.record_update_result(None)
+        return data
+
+    async def _async_update_data_inner(self) -> dict[str, Any]:
         """Update data via library.
 
         The Bosch cloud regularly lets a session die silently: the TCP

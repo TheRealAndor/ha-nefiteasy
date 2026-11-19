@@ -74,7 +74,7 @@ SENSORS: tuple[NefitSensorEntityDescription, ...] = (
         state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     NefitSensorEntityDescription(
-        key="status", name="status", url="/system/appliance/displaycode"
+        key="status", name="Status", url="/system/appliance/displaycode"
     ),
     NefitSensorEntityDescription(
         key="supply_temperature",

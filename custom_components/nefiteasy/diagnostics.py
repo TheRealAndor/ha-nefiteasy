@@ -6,10 +6,10 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_ACCESSKEY, CONF_PASSWORD, CONF_SERIAL, DOMAIN
+from .const import CONF_ACCESSKEY, CONF_PASSWORD, CONF_SERIAL
+from .coordinator import NefitEasyConfigEntry
 
 TO_REDACT = {CONF_SERIAL, CONF_ACCESSKEY, CONF_PASSWORD}
 REDACTED = "**REDACTED**"
@@ -34,10 +34,10 @@ def _redact_values(data: dict[str, Any]) -> dict[str, Any]:
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: NefitEasyConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    client = hass.data[DOMAIN][entry.entry_id]["client"]
+    client = entry.runtime_data
 
     return {
         "entry": async_redact_data(dict(entry.data), TO_REDACT),

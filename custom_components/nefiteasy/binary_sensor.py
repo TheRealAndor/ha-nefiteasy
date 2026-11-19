@@ -8,15 +8,15 @@ from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, SIGNAL_CONNECTION_STATUS
+from .const import SIGNAL_CONNECTION_STATUS
+from .coordinator import NefitEasyConfigEntry
+from .entity import NefitEntity
 from .models import NefitBinarySensorEntityDescription
-from .nefit_entity import NefitEntity
 
 CLOUD_CONNECTION = NefitBinarySensorEntityDescription(
     key="cloud_connection",
@@ -28,11 +28,11 @@ CLOUD_CONNECTION = NefitBinarySensorEntityDescription(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: NefitEasyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Binary sensor platform setup for nefit easy."""
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    client = config_entry.runtime_data
     async_add_entities(
         [NefitCloudConnection(CLOUD_CONNECTION, client, config_entry.data)]
     )

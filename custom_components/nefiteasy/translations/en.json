@@ -1,31 +1,56 @@
 {
     "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
+        "step": {
+            "user": {
+                "title": "Connect your Nefit Easy",
+                "description": "Home Assistant connects to the thermostat through the Bosch cloud.",
+                "data": {
+                    "serial": "Serial number",
+                    "accesskey": "Access key",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "serial": "Printed on the sticker of the thermostat, without spaces.",
+                    "accesskey": "Printed on the sticker next to the serial number, without spaces.",
+                    "password": "The password you chose in the Nefit Easy app."
+                }
+            },
+            "options": {
+                "title": "Thermostat settings",
+                "data": {
+                    "min_temp": "Minimum temperature",
+                    "max_temp": "Maximum temperature",
+                    "temp_step": "Temperature step"
+                },
+                "data_description": {
+                    "min_temp": "Lowest target temperature you can set from Home Assistant, in °C.",
+                    "max_temp": "Highest target temperature you can set from Home Assistant, in °C.",
+                    "temp_step": "Step size of the target temperature, in °C."
+                }
+            },
+            "reauth_confirm": {
+                "title": "Reauthenticate the Nefit Easy",
+                "description": "The Bosch cloud rejected the access key or password of thermostat {serial}. Enter them again.",
+                "data": {
+                    "accesskey": "Access key",
+                    "password": "Password"
+                },
+                "data_description": {
+                    "accesskey": "Printed on the sticker next to the serial number, without spaces.",
+                    "password": "The password you chose in the Nefit Easy app."
+                }
+            }
         },
         "error": {
             "cannot_connect": "Failed to connect",
-            "cannot_communicate": "Failed to communicate",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error",
+            "cannot_communicate": "Connected to the Bosch cloud, but the thermostat did not answer",
             "invalid_credentials": "Invalid serial number / access key combination",
-            "invalid_password": "Invalid password"
+            "invalid_password": "Invalid password",
+            "unknown": "Unexpected error"
         },
-        "step": {
-            "options": {
-                "data": {
-                    "max_temp": "Maximum temperature",
-                    "min_temp": "Minimum temperature",
-                    "temp_step": "Temperature step"
-                }
-            },
-            "user": {
-                "data": {
-                    "accesskey": "Access key",
-                    "password": "Password",
-                    "serial": "Serial number"
-                }
-            }
+        "abort": {
+            "already_configured": "Device is already configured",
+            "reauth_successful": "Re-authentication was successful"
         }
     },
     "title": "Nefit Easy (Bosch)"

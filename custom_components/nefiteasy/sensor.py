@@ -6,27 +6,27 @@ from contextlib import suppress
 import logging
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, SENSORS
+from .const import SENSORS
+from .coordinator import NefitEasyConfigEntry
+from .entity import NefitEntity
 from .models import NefitSensorEntityDescription
-from .nefit_entity import NefitEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: NefitEasyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Sensor platform setup for nefit easy."""
     entities: list[NefitEntity] = []
 
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    client = config_entry.runtime_data
     data = config_entry.data
 
     for description in SENSORS:

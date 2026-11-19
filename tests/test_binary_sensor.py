@@ -37,7 +37,7 @@ async def test_connection_sensor_outage(
 ):
     """Test the sensor stays available and reports the reason of an outage."""
     entity_id = _entity_id(hass)
-    coordinator = hass.data["nefiteasy"][nefit_config.entry_id]["client"]
+    coordinator = nefit_config.runtime_data
 
     with patch.object(
         coordinator,

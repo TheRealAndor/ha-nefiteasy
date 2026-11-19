@@ -2,29 +2,55 @@
   "config": {
     "step": {
       "user": {
+        "title": "Connect your Nefit Easy",
+        "description": "Home Assistant connects to the thermostat through the Bosch cloud.",
         "data": {
           "serial": "Serial number",
           "accesskey": "Access key",
           "password": "[%key:common::config_flow::data::password%]"
+        },
+        "data_description": {
+          "serial": "Printed on the sticker of the thermostat, without spaces.",
+          "accesskey": "Printed on the sticker next to the serial number, without spaces.",
+          "password": "The password you chose in the Nefit Easy app."
         }
       },
       "options": {
+        "title": "Thermostat settings",
         "data": {
           "min_temp": "Minimum temperature",
           "max_temp": "Maximum temperature",
           "temp_step": "Temperature step"
+        },
+        "data_description": {
+          "min_temp": "Lowest target temperature you can set from Home Assistant, in °C.",
+          "max_temp": "Highest target temperature you can set from Home Assistant, in °C.",
+          "temp_step": "Step size of the target temperature, in °C."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate the Nefit Easy",
+        "description": "The Bosch cloud rejected the access key or password of thermostat {serial}. Enter them again.",
+        "data": {
+          "accesskey": "Access key",
+          "password": "[%key:common::config_flow::data::password%]"
+        },
+        "data_description": {
+          "accesskey": "Printed on the sticker next to the serial number, without spaces.",
+          "password": "The password you chose in the Nefit Easy app."
         }
       }
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "cannot_communicate": "Failed to communicate",
-      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "cannot_communicate": "Connected to the Bosch cloud, but the thermostat did not answer",
       "invalid_credentials": "Invalid serial number / access key combination",
-      "invalid_password": "Invalid password"
+      "invalid_password": "Invalid password",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
     }
   }
 }

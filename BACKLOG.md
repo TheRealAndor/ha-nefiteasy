@@ -19,8 +19,9 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 - [ ] Verify the 20 s request timeout in a real installation
 - [ ] Verify the hot water switch
 - [ ] Automated tests for the reconnect logic
-- [ ] Use the request timeout constant in the climate entity
-- [ ] Remove unused imports
+- [ ] Silver tier of the quality scale
+- [x] Use the request timeout constant in the climate entity
+- [x] Remove unused imports
 
 **🧹 Housekeeping**
 
@@ -111,6 +112,14 @@ The tests cover entities, diagnostics and the connection sensor, but not the mai
 - A session that comes up after the connect timeout is reused
 - A slow optional endpoint keeps its previous value
 - `session_end` during our own reconnect is ignored
+
+### Silver tier of the quality scale
+
+v0.5.0 meets Bronze; `quality_scale.yaml` lists the state of every rule. Still open for Silver:
+
+- `parallel-updates`: set `PARALLEL_UPDATES` in each platform (probably 1, the Bosch cloud handles one request at a time)
+- `test-coverage`: above 95 % for all modules; the reconnect logic is the main gap (see *Automated tests for the reconnect logic*)
+- `docs-configuration-parameters`: document the options once there is an options flow (see *Options flow*)
 
 ### Use the request timeout constant in the climate entity
 

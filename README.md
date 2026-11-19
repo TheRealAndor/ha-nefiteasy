@@ -22,6 +22,14 @@
 > **A maintained fork of [ksya/ha-nefiteasy](https://github.com/ksya/ha-nefiteasy).**
 > I keep this repository for my own Home Assistant, and anyone is welcome to use it. I try to solve the issues reported here myself and keep the integration up to date for as long as I have a Nefit Easy myself. [Issues](https://github.com/TheRealAndor/ha-nefiteasy/issues) and pull requests are welcome.
 
+## 🔎 What it does
+
+The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no local API: the thermostat and the Nefit Easy app talk to each other through the Bosch cloud. This integration connects Home Assistant to that same cloud, with the serial number, access key and password of the thermostat, and polls it every 60 seconds.
+
+You get a thermostat entity to read and set the room temperature and the program, plus sensors and switches for the boiler: status codes, supply and outdoor temperature, water pressure, gas usage, hot water, holiday and fireplace mode, presence detection and more. The integration is written for the first generation of Bosch cloud thermostats; the Nefit Easy is the one it is tested with.
+
+The integration meets the [Bronze tier](https://developers.home-assistant.io/docs/core/integration-quality-scale/) of the Home Assistant integration quality scale, see [`quality_scale.yaml`](custom_components/nefiteasy/quality_scale.yaml).
+
 ## ✨ Highlights
 
 | | |
@@ -382,7 +390,23 @@ Based on upstream 0.4.10. The changes mainly target the unstable connection to t
 
 </details>
 
+<details>
+<summary><b>Home Assistant quality scale (Bronze)</b></summary>
+
+- **Reauthentication works.** When the Bosch cloud rejects the access key or password, Home Assistant asks for new ones under *Settings → Devices & services* instead of failing to start a flow that did not exist. A wrong password during startup is now recognised as such, not as a connection problem that keeps retrying.
+- **Clearer setup form** with a description for each field, and an unexpected error shows a message instead of a broken form.
+- **Entity names follow the device name** (`has_entity_name`). Entity IDs stay the same; friendly names now start with the device name, for example *Nefit Status*.
+- Under the hood: the connection lives in `coordinator.py` and is stored in the config entry (`runtime_data`), the climate entity waits the same 20 s as other requests, and more tests cover the config flow.
+
+</details>
+
 See the [releases](https://github.com/TheRealAndor/ha-nefiteasy/releases) for what changed in each version.
+
+## 🗑️ Removing
+
+1. Go to **Settings → Devices & services → Nefit Easy (Bosch)**.
+2. Open the menu (⋮) next to the thermostat and choose **Delete**. Home Assistant removes the device and its entities; the thermostat and the Nefit Easy app keep working as before.
+3. To remove the integration files too, uninstall **Nefit Easy** in HACS (or the Marketplace), or delete `custom_components/nefiteasy/` for a manual installation, and restart Home Assistant.
 
 ## 🐞 Troubleshooting
 

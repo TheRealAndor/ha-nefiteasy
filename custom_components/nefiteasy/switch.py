@@ -8,27 +8,26 @@ from types import MappingProxyType
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import NefitEasy
-from .const import DOMAIN, SWITCHES
+from .const import SWITCHES
+from .coordinator import NefitEasy, NefitEasyConfigEntry
+from .entity import NefitEntity
 from .models import NefitSwitchEntityDescription
-from .nefit_entity import NefitEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: NefitEasyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Switch setup for nefit easy."""
     entities: list[NefitEntity] = []
 
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    client = config_entry.runtime_data
     data = config_entry.data
 
     presence_description = None

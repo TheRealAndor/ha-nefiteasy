@@ -28,7 +28,7 @@ The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no
 
 You get a thermostat entity to read and set the room temperature and the program, plus sensors and switches for the boiler: status codes, supply and outdoor temperature, water pressure, gas usage, hot water, holiday and fireplace mode, presence detection and more. The integration is written for the first generation of Bosch cloud thermostats; the Nefit Easy is the one it is tested with.
 
-The integration meets the [Bronze tier](https://developers.home-assistant.io/docs/core/integration-quality-scale/) of the Home Assistant integration quality scale, see [`quality_scale.yaml`](custom_components/nefiteasy/quality_scale.yaml).
+The integration meets the [Bronze tier](https://developers.home-assistant.io/docs/core/integration-quality-scale/) of the Home Assistant integration quality scale, see [`quality_scale.yaml`](custom_components/nefiteasy/quality_scale.yaml). HACS and the Marketplace do not require this; following the quality scale is a way to raise the quality of the integration, using the same rules as the integrations built into Home Assistant.
 
 ## ✨ Highlights
 

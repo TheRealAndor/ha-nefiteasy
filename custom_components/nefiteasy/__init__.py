@@ -45,11 +45,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: NefitEasyConfigEntry) ->
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # The options flow changes the poll interval, the timeout and the
+    # temperature limits; reload so everything uses the new values.
+    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
+
     # The entities register the endpoints to poll when they are added, so the
     # first full poll runs after the platforms are set up.
     await client.async_refresh()
 
     return True
+
+
+async def _async_reload_entry(hass: HomeAssistant, entry: NefitEasyConfigEntry) -> None:
+    """Reload the entry after its options changed."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NefitEasyConfigEntry) -> bool:

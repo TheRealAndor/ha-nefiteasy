@@ -24,7 +24,7 @@
 
 ## 🔎 What it does
 
-The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no local API: the thermostat and the Nefit Easy app talk to each other through the Bosch cloud. This integration connects Home Assistant to that same cloud, with the serial number, access key and password of the thermostat, and polls it every 60 seconds.
+The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no local API: the thermostat and the Nefit Easy app talk to each other through the Bosch cloud. This integration connects Home Assistant to that same cloud, with the serial number, access key and password of the thermostat, and polls it every 60 seconds by default.
 
 You get a thermostat entity to read and set the room temperature and the program, plus sensors and switches for the boiler: status codes, supply and outdoor temperature, water pressure, gas usage, hot water, holiday and fireplace mode, presence detection and more. The integration is written for the first generation of Bosch cloud thermostats; the Nefit Easy is the one it is tested with.
 
@@ -144,6 +144,18 @@ If you restarted between step 1 and 2 by accident, the integration shows as *not
 
 Many entities are disabled by default. Enable the ones you need on the device page; disabled entities are not polled.
 
+### Options
+
+Change the settings later under **Settings → Devices & services → Nefit Easy (Bosch) → ⚙️ Configure**. Home Assistant reloads the integration after saving.
+
+| Option | Default | Range | Description |
+| - | :-: | :-: | - |
+| Minimum temperature | 10 °C | 5–35 °C | Lowest target temperature you can set from Home Assistant |
+| Maximum temperature | 28 °C | 5–35 °C | Highest target temperature you can set from Home Assistant |
+| Temperature step | 0.5 °C | 0.1–1 °C | Step size of the target temperature |
+| Poll interval | 60 s | 15–3600 s | How often the status and all enabled entities are read. Each poll is about 15 requests to the Bosch cloud, so a short interval means many more requests. The status is never faster than the Bosch cloud answers. |
+| Request timeout | 20 s | 5–60 s | How long to wait for one answer before retrying or reconnecting. The Bosch cloud often needs 10–20 s; a shorter timeout causes more reconnects. |
+
 ## 🧩 Entities
 
 The entity IDs below are those for the default device name **Nefit**. If you renamed the device, yours differ (for example `sensor.living_room_status`); check them on the device page.
@@ -177,6 +189,8 @@ The entity IDs below are those for the default device name **Nefit**. If you ren
 | `system_pressure` | System pressure | bar | ✅ | Water pressure of the heating system |
 | `actual_power` | Power | % | ✅ | Current burner power |
 | `year_total` | Year total | m³ | ✅ | Gas used since 1 January, usable in the Energy dashboard. Converted from kWh for natural gas. |
+| `gas_hot_water_yesterday` | Gas hot water yesterday | m³ | ✅ | Gas used for hot water on the newest day in the history of the thermostat, normally yesterday. Attributes `date`, `energy_kwh` and `average_outdoor_temperature`. |
+| `gas_heating_yesterday` | Gas heating yesterday | m³ | ✅ | The same for central heating |
 | `inhouse_temperature` | Inhouse temperature | °C | ❌ | Room temperature (also in the thermostat) |
 | `target_temperature` | Target temperature | °C | ❌ | Target temperature (also in the thermostat) |
 | `hot_water_operation` | Hot water operation | | ❌ | Hot water program, for example `follow-ch` (follow the heating program) |
@@ -348,7 +362,7 @@ automation:
           entity_id: switch.floor_heating_pump
 ```
 
-The status is polled every 60 seconds, so the pump follows the boiler with up to a minute of delay.
+The status is polled every 60 seconds by default, so the pump follows the boiler with up to a minute of delay. A shorter **poll interval** in the options makes it follow faster.
 
 </details>
 
@@ -375,7 +389,21 @@ cards:
 
 </details>
 
-**Gas usage:** add `sensor.nefit_year_total` under *Settings → Dashboards → Energy → Gas consumption*. It counts from 1 January and resets each year; the Energy dashboard handles that.
+**Gas usage:** under *Settings → Dashboards → Energy → Gas consumption*, add either
+
+- **Nefit gas hot water** and **Nefit gas heating** (recommended). These are statistics with the usage per day, split into hot water and heating, on the day it was used. The first time, the integration imports about a year of history from the thermostat; after that it adds each new day. The thermostat adds a day after it has ended, so today shows up tomorrow. In the Energy dashboard the values are on midnight of each day.
+- or `sensor.nefit_year_total`, which updates during the day but is not split. It counts from 1 January and resets each year; the Energy dashboard handles that.
+
+Use one of the two, not both, or the usage is counted twice.
+
+<details>
+<summary><b>Gas usage history</b></summary>
+
+The thermostat keeps one record per day since it was installed, with the gas used for hot water and for central heating in kWh and the average outdoor temperature ([protocol notes by marcelrv](https://github.com/marcelrv/nefit_easy_protocol/blob/master/gasusage.md)). The integration checks once an hour for a new day; this is one small request. kWh is converted to m³ with the factor of the thermostat for natural gas (0.12307692, a calorific value of 29 MJ/m³), the same as `year_total`.
+
+The statistics need the recorder, which is on in a standard installation. Without it only the two sensors are updated. The statistics are not linked to an entity: they stay when you remove the integration, and you can remove them under *Developer tools → Statistics*.
+
+</details>
 
 ## 🛠️ Improvements compared to the original
 
@@ -399,6 +427,8 @@ Based on upstream 0.4.10. The changes mainly target the unstable connection to t
 - **Connection sensor** `Bosch cloud connection` with the time and reason of outages. It has its own update signal, because Home Assistant does not notify entities after a second failed update in a row.
 - **Hot water that works** (0.5.0). The `hot_water` switch sprang back after every change ([ksya#44](https://github.com/ksya/ha-nefiteasy/issues/44)): it wrote the setting of the current user mode but showed the hot water state, which stays `on` while *follows program* is off in the app. Now the switch shows the setting it writes in both user modes, with new entities for *follows program*, the hot water state and the program. See *Hot water* under *Entities*.
 - **Burner activity sensor** (0.5.0): central heating, hot water or idle.
+- **Gas usage per day, split into hot water and heating** (0.5.0, [ksya#194](https://github.com/ksya/ha-nefiteasy/issues/194)): statistics for the Energy dashboard with about a year of history, and sensors for yesterday. See *Gas usage* under *Examples*.
+- **Options** (0.5.0): change the temperature limits, the poll interval and the request timeout after setup, without editing the code ([ksya#213](https://github.com/ksya/ha-nefiteasy/issues/213), [ksya#47](https://github.com/ksya/ha-nefiteasy/issues/47)).
 - **Diagnostics download** (*Settings → Devices & services → Nefit Easy (Bosch) → ⋮ → Download diagnostics*) with connection state, timeouts, polled endpoints and values. Serial number, access key, password and presence phone names are removed.
 
 </details>

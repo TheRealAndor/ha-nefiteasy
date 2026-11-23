@@ -1,6 +1,7 @@
 """Tests of the config flow of the nefiteasy integration."""
 
 import asyncio
+from datetime import timedelta
 from unittest.mock import patch
 
 from homeassistant import config_entries
@@ -309,3 +310,80 @@ async def test_reauth(mock_class, hass: HomeAssistant):
     assert entry.data["password"] == "newPass"
     assert entry.data["serial"] == "123456789"
     assert entry.data["min_temp"] == 10
+
+
+OPTIONS = {
+    "min_temp": 12,
+    "max_temp": 25,
+    "temp_step": 0.5,
+    "scan_interval": 30,
+    "request_timeout": 25,
+}
+
+
+@patch("custom_components.nefiteasy.coordinator.NefitCore")
+async def test_options_flow(mock_class, hass: HomeAssistant):
+    """Test the options change the limits, poll interval and timeout."""
+    client = ClientMock(mock_class)
+    mock_class.return_value = client
+
+    entry = MockConfigEntry(domain=DOMAIN, data=ENTRY_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    assert entry.runtime_data.update_interval == timedelta(seconds=60)
+    assert entry.runtime_data.request_timeout == 20
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "init"
+
+    # The form starts with the values of the setup.
+    suggested = {
+        str(key): key.description["suggested_value"]
+        for key in result["data_schema"].schema
+    }
+    assert suggested == {
+        "min_temp": 10,
+        "max_temp": 28,
+        "temp_step": 0.5,
+        "scan_interval": 60,
+        "request_timeout": 20,
+    }
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], OPTIONS
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options == OPTIONS
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    # The entry was reloaded with the new settings.
+    assert entry.state is config_entries.ConfigEntryState.LOADED
+    assert entry.runtime_data.update_interval == timedelta(seconds=30)
+    assert entry.runtime_data.request_timeout == 25
+
+    thermostat = hass.states.get("climate.nefit")
+    assert thermostat.attributes["min_temp"] == 12
+    assert thermostat.attributes["max_temp"] == 25
+
+
+@patch("custom_components.nefiteasy.coordinator.NefitCore")
+async def test_options_flow_max_below_min(mock_class, hass: HomeAssistant):
+    """Test the maximum temperature must be above the minimum."""
+    client = ClientMock(mock_class)
+    mock_class.return_value = client
+
+    entry = MockConfigEntry(domain=DOMAIN, data=ENTRY_DATA)
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {**OPTIONS, "min_temp": 25, "max_temp": 20}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"max_temp": "max_below_min"}
+    assert entry.options == {}

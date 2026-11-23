@@ -224,8 +224,8 @@ class ClientMock:
         """Connect."""
         self.xmppclient.connected_event.set()
 
-        self.serial_number = self.mock.call_args_list[0][1]["serial_number"]
-        self.callback = self.mock.call_args_list[0][1].get("message_callback")
+        self.serial_number = self.mock.call_args_list[-1][1]["serial_number"]
+        self.callback = self.mock.call_args_list[-1][1].get("message_callback")
 
         return
 

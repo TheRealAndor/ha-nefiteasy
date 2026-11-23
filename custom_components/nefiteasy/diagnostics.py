@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_ACCESSKEY, CONF_PASSWORD, CONF_SERIAL
 from .coordinator import NefitEasyConfigEntry
+from .gas import GasDay
 
 TO_REDACT = {CONF_SERIAL, CONF_ACCESSKEY, CONF_PASSWORD}
 REDACTED = "**REDACTED**"
@@ -33,6 +34,18 @@ def _redact_values(data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _gas_day(day: GasDay | None) -> dict[str, Any] | None:
+    """Return the newest day of the gas usage history."""
+    if day is None:
+        return None
+    return {
+        "day": day.day.isoformat(),
+        "hot_water_kwh": day.hot_water,
+        "heating_kwh": day.heating,
+        "outdoor_temperature": day.outdoor_temperature,
+    }
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: NefitEasyConfigEntry
 ) -> dict[str, Any]:
@@ -41,6 +54,8 @@ async def async_get_config_entry_diagnostics(
 
     return {
         "entry": async_redact_data(dict(entry.data), TO_REDACT),
+        "options": dict(entry.options),
+        "gas_usage_latest": _gas_day(client.gas.latest),
         "aionefit_version": await hass.async_add_executor_job(_aionefit_version),
         "connection": client.connection_diagnostics(),
         "polled_endpoints": client.registered_urls,

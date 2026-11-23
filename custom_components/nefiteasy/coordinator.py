@@ -21,7 +21,11 @@ import slixmpp
 from .const import (
     CONF_ACCESSKEY,
     CONF_PASSWORD,
+    CONF_REQUEST_TIMEOUT,
+    CONF_SCAN_INTERVAL,
     CONF_SERIAL,
+    DEFAULT_REQUEST_TIMEOUT,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     SIGNAL_CONNECTION_STATUS,
     STATE_CONNECTED,
@@ -30,6 +34,7 @@ from .const import (
     STATE_INIT,
     short,
 )
+from .gas import NefitGasUsage
 from .models import NefitEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,11 +59,6 @@ logging.getLogger("slixmpp.basexmpp").addFilter(_SuppressLegacyXmppWarning())
 
 # Seconds to wait for the XMPP session and for the first test message.
 CONNECT_TIMEOUT = 29.0
-# Seconds to wait for the answer to a single GET request. The Bosch cloud is
-# often slow without being down: measurements in ksya/ha-nefiteasy#462 showed
-# replies of 9-20 s on sessions that kept working. With a shorter timeout each
-# of those counts as a lost session and triggers a retry or a reconnect.
-REQUEST_TIMEOUT = 20.0
 # Seconds to wait for a stale transport to close before reconnecting.
 TEARDOWN_TIMEOUT = 5.0
 # Name slixmpp uses for its repeating whitespace keepalive. Scheduling it a
@@ -111,8 +111,18 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
 
         self._urls: dict[str, Any] = {}
         self._status_keys: dict[str, Any] = {}
+        # Value of the last answer to _async_get_url, for async_request.
+        self._answer: Any = None
 
-        update_interval = timedelta(seconds=60)
+        # Seconds to wait for the answer to a single request. With a timeout
+        # shorter than the Bosch cloud needs, each slow answer counts as a
+        # lost session and triggers a retry or a reconnect.
+        self.request_timeout = float(
+            self.setting(entry, CONF_REQUEST_TIMEOUT, DEFAULT_REQUEST_TIMEOUT)
+        )
+        update_interval = timedelta(
+            seconds=self.setting(entry, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        )
 
         super().__init__(
             hass,
@@ -125,6 +135,17 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
         # Entities may be added before the first refresh has finished; give
         # them an (empty) dict to read from instead of None.
         self.data = self._data
+
+        self.gas = NefitGasUsage(self)
+
+    @staticmethod
+    def setting(entry: ConfigEntry, key: str, default: Any) -> Any:
+        """Return a setting from the options, else from the setup data.
+
+        Entries set up before the options flow keep the temperatures in
+        entry.data; the options flow stores all settings in entry.options.
+        """
+        return entry.options.get(key, entry.data.get(key, default))
 
     async def add_key(self, entity_description: NefitEntityDescription) -> None:
         """Add key to list of endpoints."""
@@ -291,7 +312,7 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
         _LOGGER.debug("XMPP session is up from an earlier attempt; verifying it.")
         async with self._connect_lock:
             self.connected_state = STATE_CONNECTED
-            await self._async_verify_session(REQUEST_TIMEOUT)
+            await self._async_verify_session(self.request_timeout)
             if self.connected_state == STATE_ERROR_AUTH:
                 raise ConfigEntryAuthFailed(
                     "The Bosch cloud rejected the serial number, access key or password."
@@ -362,6 +383,13 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
 
     async def parse_message(self, data: dict[str, Any]) -> None:
         """Message received callback function for the XMPP client."""
+        # The answer to "/path?page=2" has the id "/path".
+        answers_request = bool(self._request) and (
+            self._request.split("?", 1)[0] == data["id"]
+        )
+        if answers_request:
+            self._answer = data.get("value")
+
         if (
             data["id"] == "/ecus/rrc/uiStatus"
             and self.connected_state == STATE_CONNECTION_VERIFIED
@@ -393,9 +421,12 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
         ):
             self._data[self._urls[data["id"]]["key"]] = data["value"]
         else:
+            # Not stored in the data, for example a gas usage page.
+            if answers_request and self.connected_state == STATE_CONNECTION_VERIFIED:
+                self._event.set()
             return
 
-        if self._request == data["id"]:
+        if answers_request:
             self._event.set()
         else:
             self.async_set_updated_data(self._data)
@@ -450,7 +481,7 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
                 self.update_interval.total_seconds() if self.update_interval else None
             ),
             "connect_timeout_seconds": CONNECT_TIMEOUT,
-            "request_timeout_seconds": REQUEST_TIMEOUT,
+            "request_timeout_seconds": self.request_timeout,
         }
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -461,6 +492,9 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
             self.record_update_result(str(ex) or repr(ex))
             raise
         self.record_update_result(None)
+        # The gas usage history changes once a day; it is read in the
+        # background so the poll does not wait for it.
+        self.gas.async_schedule()
         return data
 
     async def _async_update_data_inner(self) -> dict[str, Any]:
@@ -560,6 +594,16 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
 
             return None
 
+    async def async_request(self, url: str) -> Any:
+        """Request one endpoint and return its value without storing it.
+
+        Raises asyncio.TimeoutError when the thermostat does not answer.
+        """
+        async with self._lock:
+            self._answer = None
+            await self._async_get_url(url)
+            return self._answer
+
     async def update_ui_status_later(self, delay: float) -> None:
         """Force update of uiStatus after delay."""
         self.hass.loop.call_later(delay, self.nefit.get, "/ecus/rrc/uiStatus")
@@ -569,7 +613,7 @@ class NefitEasy(DataUpdateCoordinator[dict[str, Any]]):
         self._request = url
         self.nefit.get(url)
         try:
-            await asyncio.wait_for(self._event.wait(), timeout=REQUEST_TIMEOUT)
+            await asyncio.wait_for(self._event.wait(), timeout=self.request_timeout)
         except asyncio.TimeoutError:
             raise
         finally:

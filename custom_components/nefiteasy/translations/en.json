@@ -53,5 +53,30 @@
             "reauth_successful": "Re-authentication was successful"
         }
     },
-    "title": "Nefit Easy (Bosch)"
+    "title": "Nefit Easy (Bosch)",
+    "options": {
+        "step": {
+            "init": {
+                "title": "Nefit Easy settings",
+                "description": "Home Assistant reloads the integration after saving.",
+                "data": {
+                    "min_temp": "Minimum temperature",
+                    "max_temp": "Maximum temperature",
+                    "temp_step": "Temperature step",
+                    "scan_interval": "Poll interval",
+                    "request_timeout": "Request timeout"
+                },
+                "data_description": {
+                    "min_temp": "Lowest target temperature you can set from Home Assistant.",
+                    "max_temp": "Highest target temperature you can set from Home Assistant.",
+                    "temp_step": "Step size of the target temperature.",
+                    "scan_interval": "How often Home Assistant asks the thermostat for its status, 15 to 3600 seconds. Each poll is about 15 requests to the Bosch cloud, so a short interval means many more requests. The status is never faster than the Bosch cloud answers.",
+                    "request_timeout": "How long to wait for the answer to one request before trying again or reconnecting, 5 to 60 seconds. The Bosch cloud often needs 10 to 20 seconds; a shorter timeout causes more reconnects."
+                }
+            }
+        },
+        "error": {
+            "max_below_min": "The maximum temperature must be higher than the minimum temperature."
+        }
+    }
 }

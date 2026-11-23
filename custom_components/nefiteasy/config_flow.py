@@ -9,8 +9,20 @@ from typing import Any
 
 from aionefit import NefitCore
 from homeassistant import core, exceptions
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.const import UnitOfTemperature, UnitOfTime
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 import voluptuous as vol
 
 from .const import (
@@ -21,9 +33,20 @@ from .const import (
     CONF_MIN_TEMP,
     CONF_NAME,
     CONF_PASSWORD,
+    CONF_REQUEST_TIMEOUT,
+    CONF_SCAN_INTERVAL,
     CONF_SERIAL,
     CONF_TEMP_STEP,
+    DEFAULT_MAX_TEMP,
+    DEFAULT_MIN_TEMP,
+    DEFAULT_REQUEST_TIMEOUT,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TEMP_STEP,
     DOMAIN,
+    MAX_REQUEST_TIMEOUT,
+    MAX_SCAN_INTERVAL,
+    MIN_REQUEST_TIMEOUT,
+    MIN_SCAN_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -191,15 +214,21 @@ class NefitEasyConfigFlow(ConfigFlow, domain=DOMAIN):
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_MIN_TEMP, default=10): cv.positive_int,
-                vol.Required(CONF_MAX_TEMP, default=28): cv.positive_int,
-                vol.Required(CONF_TEMP_STEP, default=0.5): cv.small_float,
+                vol.Required(CONF_MIN_TEMP, default=DEFAULT_MIN_TEMP): cv.positive_int,
+                vol.Required(CONF_MAX_TEMP, default=DEFAULT_MAX_TEMP): cv.positive_int,
+                vol.Required(CONF_TEMP_STEP, default=DEFAULT_TEMP_STEP): cv.small_float,
             }
         )
 
         return self.async_show_form(
             step_id="options", data_schema=schema, errors=errors
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> NefitEasyOptionsFlow:
+        """Return the options flow."""
+        return NefitEasyOptionsFlow()
 
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
@@ -245,6 +274,90 @@ class NefitEasyConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=schema,
             errors=errors,
             description_placeholders={"serial": reauth_entry.data[CONF_SERIAL]},
+        )
+
+
+def _seconds(minimum: int, maximum: int) -> NumberSelector:
+    """Return a number field in seconds."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=minimum,
+            max=maximum,
+            step=1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement=UnitOfTime.SECONDS,
+        )
+    )
+
+
+def _temperature(minimum: float, maximum: float, step: float) -> NumberSelector:
+    """Return a number field in degrees Celsius."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=minimum,
+            max=maximum,
+            step=step,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement=UnitOfTemperature.CELSIUS,
+        )
+    )
+
+
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_MIN_TEMP): _temperature(5, 35, 1),
+        vol.Required(CONF_MAX_TEMP): _temperature(5, 35, 1),
+        vol.Required(CONF_TEMP_STEP): _temperature(0.1, 1, 0.1),
+        vol.Required(CONF_SCAN_INTERVAL): _seconds(
+            MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL
+        ),
+        vol.Required(CONF_REQUEST_TIMEOUT): _seconds(
+            MIN_REQUEST_TIMEOUT, MAX_REQUEST_TIMEOUT
+        ),
+    }
+)
+
+
+class NefitEasyOptionsFlow(OptionsFlow):
+    """Change the settings of a thermostat after setup."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show and store the settings."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            if user_input[CONF_MIN_TEMP] >= user_input[CONF_MAX_TEMP]:
+                errors[CONF_MAX_TEMP] = "max_below_min"
+            else:
+                return self.async_create_entry(
+                    data={
+                        CONF_MIN_TEMP: int(user_input[CONF_MIN_TEMP]),
+                        CONF_MAX_TEMP: int(user_input[CONF_MAX_TEMP]),
+                        CONF_TEMP_STEP: float(user_input[CONF_TEMP_STEP]),
+                        CONF_SCAN_INTERVAL: int(user_input[CONF_SCAN_INTERVAL]),
+                        CONF_REQUEST_TIMEOUT: int(user_input[CONF_REQUEST_TIMEOUT]),
+                    }
+                )
+
+        entry = self.config_entry
+        current = {
+            key: entry.options.get(key, entry.data.get(key, default))
+            for key, default in (
+                (CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
+                (CONF_MAX_TEMP, DEFAULT_MAX_TEMP),
+                (CONF_TEMP_STEP, DEFAULT_TEMP_STEP),
+                (CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+                (CONF_REQUEST_TIMEOUT, DEFAULT_REQUEST_TIMEOUT),
+            )
+        }
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                OPTIONS_SCHEMA, user_input or current
+            ),
+            errors=errors,
         )
 
 

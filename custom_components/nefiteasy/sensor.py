@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 import logging
+from types import MappingProxyType
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
@@ -12,8 +13,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
 from .const import BURNER_ACTIVITY, SENSORS
-from .coordinator import NefitEasyConfigEntry
+from .coordinator import NefitEasy, NefitEasyConfigEntry
 from .entity import NefitEntity
+from .gas import HEATING, HOT_WATER
 from .models import NefitSensorEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,6 +37,10 @@ async def async_setup_entry(
             entities.append(NefitStatus(description, client, data))
         elif description.key == "burner_activity":
             entities.append(NefitBurnerActivity(description, client, data))
+        elif description.key == "gas_hot_water_yesterday":
+            entities.append(NefitGasSensor(description, client, data, HOT_WATER))
+        elif description.key == "gas_heating_yesterday":
+            entities.append(NefitGasSensor(description, client, data, HEATING))
         elif description.key == "year_total":
             entities.append(NefitYearTotal(description, client, data))
         else:
@@ -83,6 +89,42 @@ class NefitYearTotal(NefitSensor):
         return "{:.1f}".format(
             data * 0.12307692
         )  # convert kWh to m3, for LPG, multiply with 0.040742416
+
+
+class NefitGasSensor(NefitSensor):
+    """Gas usage for hot water or heating on the newest day of the history."""
+
+    def __init__(
+        self,
+        description: NefitSensorEntityDescription,
+        client: NefitEasy,
+        data: MappingProxyType[str, Any],
+        kind: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(description, client, data)
+        self._kind = kind
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the usage in m³."""
+        latest = self.coordinator.gas.latest
+        return None if latest is None else latest.m3(self._kind)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return the day, the usage in kWh and the outdoor temperature."""
+        latest = self.coordinator.gas.latest
+        if latest is None:
+            return None
+        return {
+            "date": latest.day.isoformat(),
+            "energy_kwh": (
+                latest.hot_water if self._kind == HOT_WATER else latest.heating
+            ),
+            "average_outdoor_temperature": latest.outdoor_temperature,
+            "statistic_id": self.coordinator.gas.statistic_id(self._kind),
+        }
 
 
 class NefitBurnerActivity(NefitSensor):

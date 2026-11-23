@@ -7,9 +7,10 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 **✨ Features**
 
 - [ ] Repair issue during a long outage
-- [ ] Options flow: poll interval and timeouts
+- [x] Options flow: poll interval and timeouts
 - [ ] Dutch translation and translatable entity names
-- [ ] Gas usage per day, split into hot water and heating
+- [x] Gas usage per day, split into hot water and heating
+- [ ] Gas usage for LPG and the full history
 - [ ] Holiday mode that does not switch off after a minute
 - [ ] Action to read or write any endpoint
 - [ ] Icons for the Manual and Clock presets
@@ -55,6 +56,8 @@ The poll interval is fixed at 60 seconds (`update_interval` in `__init__.py`). P
 - Optionally the request timeout, now fixed at 20 s (`REQUEST_TIMEOUT`)
 - Mention in the description that a short interval means more requests and that the status still depends on how fast the cloud answers
 
+Done in 0.5.0b3: a real options flow (*Configure*) with the temperature limits from the setup, the poll interval (15–3600 s, default 60) and the request timeout (5–60 s, default 20). The entry reloads after saving. Entries from before keep their temperatures in `entry.data` until the options are saved once.
+
 ### Dutch translation and translatable entity names
 
 Most users are Dutch, but there is only `translations/en.json`. Entity names are hard-coded in `const.py`, which also causes odd names (ksya#214, "Sensor name does not make sense").
@@ -70,6 +73,21 @@ The most requested feature (ksya#194). The thermostat keeps a gas usage history 
 - Read the history pages and expose today's and yesterday's usage for hot water and heating as sensors usable in the Energy dashboard
 - Optionally import the history as long-term statistics
 - Useful for mindergas.nl (cooking and hot water versus heating)
+
+Done in 0.5.0b3. Measured on the test thermostat (23 November 2026):
+
+- `gasusagePointer` is the number of the next, empty record (4438); the newest record is `pointer - 1`, on page `(pointer - 2) // 32 + 1` (139). Page 1 starts on the day the thermostat was installed (2014)
+- The answer to `gasusage?page=N` has the id `/ecus/rrc/recordings/gasusage`, without the query
+- Records: `d` (dd-mm-yyyy), `hw` and `ch` in kWh, `T` average outdoor temperature in tenths of a degree. Empty records: `255-256-65535` and 6553.5
+- A day is added after it has ended; today is not in the history
+- The sum of 2026 up to yesterday was 4542.7 kWh, `yearTotal` 4563.8: the year total is in kWh too and includes today. 365 days in a row, no gaps
+
+Built as two external statistics (`nefiteasy:<serial>_gas_hot_water` and `_gas_heating`, m³, one row per day at local midnight), first about 12 pages, then only the newest page once a day. Plus two sensors for yesterday. A sensor for today is not possible from the history.
+
+### Gas usage for LPG and the full history
+
+- The conversion to m³ uses the factor for natural gas (0.12307692). For LPG the thermostat uses 0.040742416; an option for the gas type would fix `year_total` and the statistics for LPG users
+- The first import reads about a year (12 pages). An action to import the full history (139 pages on the test thermostat, back to 2014) would be possible, at a few seconds per page
 
 ### Holiday mode that does not switch off after a minute
 
@@ -166,7 +184,7 @@ v0.5.0 meets Bronze; `quality_scale.yaml` lists the state of every rule. Still o
 
 - `parallel-updates`: set `PARALLEL_UPDATES` in each platform (probably 1, the Bosch cloud handles one request at a time)
 - `test-coverage`: above 95 % for all modules; the reconnect logic is the main gap (see *Automated tests for the reconnect logic*)
-- `docs-configuration-parameters`: document the options once there is an options flow (see *Options flow*)
+- ~~`docs-configuration-parameters`~~: done in 0.5.0b3, the options are in the README
 
 ### Use the request timeout constant in the climate entity
 

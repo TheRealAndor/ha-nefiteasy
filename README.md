@@ -24,7 +24,7 @@
 
 ## 🔎 What it does
 
-The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no local API: the thermostat and the Nefit Easy app talk to each other through the Bosch cloud. This integration connects Home Assistant to that same cloud, with the serial number, access key and password of the thermostat, and polls it every 60 seconds by default.
+The Nefit Easy is a smart thermostat from Bosch for Nefit gas boilers. It has no local API: the thermostat and the Nefit Easy app talk to each other through the Bosch cloud. This integration connects Home Assistant to that same cloud, with the serial number, access key and password of the thermostat, and polls it every 60 seconds by default. The poll interval and the request timeout are **configurable** in the options, from 15 seconds up to an hour.
 
 You get a thermostat entity to read and set the room temperature and the program, plus sensors and switches for the boiler: status codes, supply and outdoor temperature, water pressure, gas usage, hot water, holiday and fireplace mode, presence detection and more. The integration is written for the first generation of Bosch cloud thermostats; the Nefit Easy is the one it is tested with.
 
@@ -37,7 +37,9 @@ The integration meets the [Bronze tier](https://developers.home-assistant.io/doc
 | 🔁 **Self-healing connection** | A lost or silent Bosch cloud session is detected and rebuilt within the same update, so entities no longer stay `unavailable` for minutes. |
 | 📶 **Connection sensor** | `Bosch cloud connection` shows whether Home Assistant gets answers, since when it doesn't, and why. It stays available during an outage. |
 | 🩺 **Diagnostics download** | One click gives you a file with the connection state, errors and values, with all secrets removed. Ideal for issues. |
-| 🐢 **Patient with a slow cloud** | 20 s request timeout: slow but working replies no longer count as a dropped session. |
+| ⏱️ **Configurable polling** | Set the poll interval (15 s to 1 hour) and the request timeout in the options, without editing the code. Follow the boiler status faster for floor heating, or poll less often. See [Options](#options). |
+| 🔥 **Gas usage per day** | Hot water and heating apart, with about a year of history, straight into the Energy dashboard. |
+| 🐢 **Patient with a slow cloud** | 20 s request timeout by default: slow but working replies no longer count as a dropped session. |
 | 🧹 **Clean log** | No "Legacy XMPP" spam, no deprecation warnings on Home Assistant 2026.11 and no `Whitespace Keepalive` errors. |
 | ⚡ **Fast startup** | Presence profiles are read in the background, so setup no longer takes over 10 seconds. |
 | 🏠 **Drop-in replacement** | Same `nefiteasy` domain as the original: your configuration, entities and history stay. |
@@ -147,6 +149,9 @@ Many entities are disabled by default. Enable the ones you need on the device pa
 ### Options
 
 Change the settings later under **Settings → Devices & services → Nefit Easy (Bosch) → ⚙️ Configure**. Home Assistant reloads the integration after saving.
+
+> [!TIP]
+> **Polling is configurable.** The original integration polls every 60 seconds, and the only way to change that was to edit the code ([ksya#213](https://github.com/ksya/ha-nefiteasy/issues/213), [ksya#192](https://github.com/ksya/ha-nefiteasy/issues/192), [ksya#47](https://github.com/ksya/ha-nefiteasy/issues/47)). Here you set the **poll interval** and the **request timeout** in the options. The interval applies to the status and every enabled entity.
 
 | Option | Default | Range | Description |
 | - | :-: | :-: | - |

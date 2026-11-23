@@ -35,7 +35,7 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 - [ ] Keep up with upstream
 - [ ] Offer the connection fixes upstream
 - [ ] Mention in ksya#479 that this fork fixed it
-- [ ] Delete the suppress-legacy-xmpp-warning branch
+- [x] Delete the suppress-legacy-xmpp-warning branch
 - [x] Share the hot water findings in ksya#44
 
 ## ✨ Features
@@ -209,9 +209,10 @@ Review can take months.
 
 ### Keep up with upstream
 
-Upstream `dev` is still active. Changes not in this fork yet:
+Upstream `dev` is still active. Checked on 23 November 2026:
 
-- `c10a487` Fetch data before setting up the platforms (ksya#484, wrburton)
+- Taken over in 0.5.0: pylint 4.1.3 (ksya#475) and pytest-homeassistant-custom-component 0.13.375 (ksya#478). The Python 3.14 workflow change (ksya#483) was already in this fork
+- Not taken over: `c10a487` Fetch data before setting up the platforms (ksya#484). This fork refreshes after the platforms are set up, because the entities register the endpoints to poll when they are added. The climate entity now returns no temperature until the first status arrives, which fixes the same flaky test
 - Open: ksya#480 (split the connection and coordinator out of `__init__.py`), ksya#481 (recover from drops and outages), ksya#482 (presence lookup failure). These overlap with this fork's connection changes; compare and take over what is better
 
 Check `git log dev..upstream/dev` now and then.
@@ -233,3 +234,5 @@ Done on 23 November 2026: [comment](https://github.com/ksya/ha-nefiteasy/issues/
 ### Delete the suppress-legacy-xmpp-warning branch
 
 The branch is merged into `dev` (v0.4.10.3) and can be deleted on GitHub.
+
+Done on 23 November 2026. Its only commit was in `dev` with another hash (`54846c2`).

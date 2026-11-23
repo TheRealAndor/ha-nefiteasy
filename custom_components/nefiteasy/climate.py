@@ -95,15 +95,24 @@ class NefitThermostat(CoordinatorEntity[NefitEasy], ClimateEntity):
         """Return the unit of measurement."""
         return self._unit_of_measurement
 
-    @property
-    def native_current_temperature(self) -> float:
-        """Return the current temperature."""
-        return float(self.coordinator.data.get("inhouse_temperature"))
+    def _temperature(self, key: str) -> float | None:
+        """Return a temperature, or None before the first status arrived.
+
+        The platforms are set up before the first poll, because the entities
+        register the endpoints to poll when they are added.
+        """
+        value = self.coordinator.data.get(key)
+        return None if value is None else float(value)
 
     @property
-    def native_target_temperature(self) -> float:
+    def native_current_temperature(self) -> float | None:
+        """Return the current temperature."""
+        return self._temperature("inhouse_temperature")
+
+    @property
+    def native_target_temperature(self) -> float | None:
         """Return target temperature."""
-        return float(self.coordinator.data.get("temp_setpoint"))
+        return self._temperature("temp_setpoint")
 
     if not hasattr(ClimateEntity, "native_current_temperature"):
         # Home Assistant before 2026.11 only knows the non-native names.

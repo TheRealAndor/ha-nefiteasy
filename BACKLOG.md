@@ -13,11 +13,16 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 - [ ] Holiday mode that does not switch off after a minute
 - [ ] Action to read or write any endpoint
 - [ ] Icons for the Manual and Clock presets
+- [ ] Hot water off while sleeping and after leaving
+- [ ] Self-learning switch
+- [ ] Temporary temperature for a set time
+- [ ] Summer switch-off temperature
+- [ ] Short tapping sensor
 
 **🧪 Quality**
 
 - [ ] Verify the 20 s request timeout in a real installation
-- [ ] Verify the hot water switch
+- [x] Verify the hot water switch
 - [ ] Automated tests for the reconnect logic
 - [ ] Silver tier of the quality scale
 - [x] Use the request timeout constant in the climate entity
@@ -30,6 +35,7 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 - [ ] Offer the connection fixes upstream
 - [ ] Mention in ksya#479 that this fork fixed it
 - [ ] Delete the suppress-legacy-xmpp-warning branch
+- [ ] Share the hot water findings in ksya#44
 
 ## ✨ Features
 
@@ -70,6 +76,7 @@ The most requested feature (ksya#194). The thermostat keeps a gas usage history 
 Turning on `holiday_mode` from Home Assistant switches it off again after about a minute (ksya#173). The switch only sets the status; without an end date in the future the thermostat ends the holiday right away. Users work around it by setting a far-away end date in the app.
 
 - When turning on, also write a start and end date, for example from now until a configurable number of days ahead, or until it is turned off
+- Expose the end date (`/heatingCircuits/hc1/holidayMode/end`, datetime) and the holiday temperature (`holidayMode/temperature`, number, 10.0 °C on the test thermostat)
 - Check the holiday mode endpoints and date format first (protocol notes or a capture of the app)
 
 ### Action to read or write any endpoint
@@ -86,6 +93,40 @@ The thermostat card shows the presets without icons (ksya#341), because `Manual`
 - Keep the names and add icons through `icons.json` (climate `preset_mode` state attribute icons), for example `mdi:hand-back-right` for Manual and `mdi:clock-outline` for Clock
 - Needs a `translation_key` on the climate entity (see *Dutch translation*)
 
+### Hot water off while sleeping and after leaving
+
+The Nefit Easy app has **Off while sleeping** and **Off after leaving** under *Hot water*. The thermostat reports them as `/dhwCircuits/dhwA/dhwOffDuringNight` and `dhwOffDuringAbsence` (`true`/`false`).
+
+- Two switches, disabled by default, with the values `true` and `false`
+- Test once that the thermostat accepts a write (write, read back, restore) before building them
+
+### Self-learning switch
+
+`/ecus/rrc/selflearning/state` (`On`/`Off`) is the self-learning setting of the app, which adjusts the clock program to when people are at home.
+
+- A switch with the values `On` and `Off`; test a write first
+- `selflearning/mode` (`Basic`) and `administration` could become attributes
+
+### Temporary temperature for a set time
+
+`/heatingCircuits/hc1/manualTempOverride/status`, `temperature` and `duration` set a temperature for a number of minutes, after which the program continues.
+
+- An action `nefiteasy.set_temporary_temperature` with a temperature and a duration, or a number plus a duration number
+- Check the unit of `duration` and the order of the writes with a test
+
+### Summer switch-off temperature
+
+`/ecus/rrc/weatherDependent/summerSwitchOff` (16 °C on the test thermostat): above this outdoor temperature the boiler does not heat. Only meaningful with weather compensation (`weather_dependent` switch).
+
+- A number, disabled by default, with a warning to ask the installer
+- Not planned: the other installer settings (`minSupply`, `maxSupply`, `basePointSupply`, `endPointSupply`) and thermal disinfection (`thermaldesinfect/*`, meant for a boiler with a tank). A wrong value there can affect the installation.
+
+### Short tapping sensor
+
+`/ecus/rrc/pm/shorttapping/status` (`true`/`false`) is a maintenance message like the existing `refill_needed` and `system_leaking` sensors.
+
+- A binary sensor, disabled by default, with the same pattern; read only
+
 ## 🧪 Quality
 
 ### Verify the 20 s request timeout in a real installation
@@ -100,8 +141,14 @@ v0.4.10.5 raised the request timeout from 9 s to 20 s, based on measurements by 
 
 ksya was not sure whether the `hot_water` switch ever worked (ksya#44). It writes to an endpoint that depends on clock or manual mode, but the state is read from `uiStatus`.
 
-- Test it on a real thermostat in both modes and compare with the Nefit app
-- Fix it or document what it actually does
+Done in 0.5.0b2. Measured on a combi boiler (19 and 21 November 2026), with the app next to it:
+
+- **Snel warm water** writes `dhwOperationManualMode` in the manual and `dhwOperationClockMode` in the clock user mode; the thermostat keeps both
+- **Volgens programma** writes `dhwOperationMode`: `eco` when on, `comfort` when off
+- With `comfort`, `dhwOperationState` and uiStatus `DHW` are always `on`; with `eco` they follow the setting of the current user mode within seconds
+- In the clock mode the program turns `dhwOperationClockMode` on at the start of a hot water period (21 November, 17:00)
+- The old switch sprang back because it read `DHW`, which stayed `on` under `comfort`
+- At the end of a period (23:00 on 19 and 21 November) nothing changed: `dhwOperationClockMode`, `dhwOperationState` and `DHW` stayed `on`, with `dhwOffDuringNight` `true`. Whether the boiler stops keeping warm without reporting it is unknown
 
 ### Automated tests for the reconnect logic
 
@@ -158,6 +205,10 @@ The comment in ksya#462 offers PRs against upstream `dev`. If RobBie1221 or wrbu
 ### Mention in ksya#479 that this fork fixed it
 
 ksya#479 reports the deprecated `CONN_CLASS_CLOUD_POLL` constant. This fork removed `CONNECTION_CLASS` in v0.4.10.3. A short comment can point users there.
+
+### Share the hot water findings in ksya#44
+
+ksya#44 ("Hot water switch not working") is open since 2021. A short comment with the measurements (see *Verify the hot water switch*) and a pointer to this fork helps others with the same question.
 
 ### Delete the suppress-legacy-xmpp-warning branch
 

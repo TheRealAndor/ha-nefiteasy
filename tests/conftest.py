@@ -76,6 +76,19 @@ async def nefit_sensor_wrapper(nefit_config, hass):
 
 
 @pytest.fixture
+async def nefit_binary_sensor_wrapper(nefit_config, hass):
+    """Enable the hot water program sensor before setup."""
+    entity_registry = er.async_get(hass)
+    entity_registry.async_get_or_create(
+        domain="binary_sensor",
+        platform="nefiteasy",
+        unique_id="123456789_hot_water_program",
+        config_entry=nefit_config,
+        original_name="Hot water program",
+    )
+
+
+@pytest.fixture
 async def nefit_select_wrapper(nefit_config, hass):
     """Setups a nefiteasy select wrapper with mocked device."""
     config_entry = nefit_config

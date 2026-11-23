@@ -11,6 +11,8 @@ from homeassistant.const import (
 )
 
 from .models import (
+    NefitBinarySensorEntityDescription,
+    NefitEntityDescription,
     NefitNumberEntityDescription,
     NefitSelectEntityDescription,
     NefitSensorEntityDescription,
@@ -41,6 +43,49 @@ SIGNAL_CONNECTION_STATUS = "nefiteasy_connection_status_{}"
 
 AUTH_ERROR_PASSWORD = "auth_error_password"
 AUTH_ERROR_CREDENTIALS = "auth_error_credentials"
+
+DHW_CIRCUIT = "/dhwCircuits/dhwA/"
+
+# Burner activity (uiStatus BAI) mapped to the states of the sensor.
+BURNER_ACTIVITY = {
+    "CH": "central_heating",
+    "HW": "hot_water",
+    "No": "idle",
+}
+
+# "Snel warm water" in the Nefit Easy app. The thermostat keeps one value per
+# user mode; in the clock mode the program sets it at every switchpoint.
+HOT_WATER_MANUAL = NefitEntityDescription(
+    key="hot_water_manual", url=DHW_CIRCUIT + "dhwOperationManualMode"
+)
+HOT_WATER_CLOCK = NefitEntityDescription(
+    key="hot_water_clock", url=DHW_CIRCUIT + "dhwOperationClockMode"
+)
+
+# "Volgens programma" in the app: eco follows the program and the setting
+# above, comfort keeps hot water on all the time.
+HOT_WATER_MODE = NefitEntityDescription(
+    key="hot_water_mode", url=DHW_CIRCUIT + "dhwOperationMode"
+)
+
+HOT_WATER_STATE = NefitBinarySensorEntityDescription(
+    key="hot_water_state",
+    name="Hot water state",
+    short="DHW",
+    icon="mdi:water-boiler",
+)
+
+HOT_WATER_PROGRAM = NefitBinarySensorEntityDescription(
+    key="hot_water_program",
+    name="Hot water program",
+    url=DHW_CIRCUIT + "dhwCurrentSwitchpoint",
+    icon="mdi:calendar-clock",
+    entity_registry_enabled_default=False,
+)
+
+HOT_WATER_NEXT_SWITCHPOINT = NefitEntityDescription(
+    key="hot_water_next_switchpoint", url=DHW_CIRCUIT + "dhwNextSwitchpoint"
+)
 
 name = "name"
 url = "url"
@@ -75,6 +120,14 @@ SENSORS: tuple[NefitSensorEntityDescription, ...] = (
     ),
     NefitSensorEntityDescription(
         key="status", name="Status", url="/system/appliance/displaycode"
+    ),
+    NefitSensorEntityDescription(
+        key="burner_activity",
+        name="Burner activity",
+        short="BAI",
+        icon="mdi:fire-circle",
+        device_class=SensorDeviceClass.ENUM,
+        options=list(BURNER_ACTIVITY.values()),
     ),
     NefitSensorEntityDescription(
         key="supply_temperature",
@@ -184,11 +237,18 @@ SENSORS: tuple[NefitSensorEntityDescription, ...] = (
 )
 
 SWITCHES: tuple[NefitSwitchEntityDescription, ...] = (
+    # "Snel warm water" of the current user mode, see HOT_WATER_MANUAL.
     NefitSwitchEntityDescription(
         key="hot_water",
         name="Hot water",
-        short="DHW",
         icon="mdi:water-boiler",
+        entity_registry_enabled_default=False,
+    ),
+    # "Volgens programma", see HOT_WATER_MODE.
+    NefitSwitchEntityDescription(
+        key="hot_water_follows_program",
+        name="Hot water follows program",
+        icon="mdi:water-boiler-auto",
         entity_registry_enabled_default=False,
     ),
     NefitSwitchEntityDescription(

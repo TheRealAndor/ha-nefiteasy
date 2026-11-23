@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from contextlib import suppress
 import logging
+from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import SENSORS
+from .const import BURNER_ACTIVITY, SENSORS
 from .coordinator import NefitEasyConfigEntry
 from .entity import NefitEntity
 from .models import NefitSensorEntityDescription
@@ -32,6 +33,8 @@ async def async_setup_entry(
     for description in SENSORS:
         if description.key == "status":
             entities.append(NefitStatus(description, client, data))
+        elif description.key == "burner_activity":
+            entities.append(NefitBurnerActivity(description, client, data))
         elif description.key == "year_total":
             entities.append(NefitYearTotal(description, client, data))
         else:
@@ -80,6 +83,23 @@ class NefitYearTotal(NefitSensor):
         return "{:.1f}".format(
             data * 0.12307692
         )  # convert kWh to m3, for LPG, multiply with 0.040742416
+
+
+class NefitBurnerActivity(NefitSensor):
+    """What the burner heats now: central heating, hot water or nothing."""
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the burner activity."""
+        code = self.coordinator.data.get(self.entity_description.key)
+        if code is not None and code not in BURNER_ACTIVITY:
+            _LOGGER.debug("Unknown burner activity %r.", code)
+        return BURNER_ACTIVITY.get(code)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the code as the thermostat reports it."""
+        return {"code": self.coordinator.data.get(self.entity_description.key)}
 
 
 class NefitStatus(NefitSensor):

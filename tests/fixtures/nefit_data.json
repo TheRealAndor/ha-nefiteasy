@@ -55,6 +55,41 @@
         "writeable": 1,
         "value": "off"
     },
+    "/dhwCircuits/dhwA/dhwOperationManualMode": {
+        "id": "/dhwCircuits/dhwA/dhwOperationManualMode",
+        "type": "stringValue",
+        "recordable": 0,
+        "writeable": 1,
+        "value": "off"
+    },
+    "/dhwCircuits/dhwA/dhwOperationClockMode": {
+        "id": "/dhwCircuits/dhwA/dhwOperationClockMode",
+        "type": "stringValue",
+        "recordable": 0,
+        "writeable": 1,
+        "value": "on"
+    },
+    "/dhwCircuits/dhwA/dhwOperationMode": {
+        "id": "/dhwCircuits/dhwA/dhwOperationMode",
+        "type": "stringValue",
+        "recordable": 0,
+        "writeable": 1,
+        "value": "eco"
+    },
+    "/dhwCircuits/dhwA/dhwCurrentSwitchpoint": {
+        "id": "/dhwCircuits/dhwA/dhwCurrentSwitchpoint",
+        "type": "arrayData",
+        "recordable": 0,
+        "writeable": 1,
+        "value": [{"active": "on", "d": "Th", "dhw": "off", "t": 1380}]
+    },
+    "/dhwCircuits/dhwA/dhwNextSwitchpoint": {
+        "id": "/dhwCircuits/dhwA/dhwNextSwitchpoint",
+        "type": "arrayData",
+        "recordable": 0,
+        "writeable": 1,
+        "value": [{"active": "on", "d": "Fr", "dhw": "on", "t": 420}]
+    },
     "/dhwCircuits/dhwA/dhwOperationType": {
         "id": "/dhwCircuits/dhwA/dhwOperationType",
         "type": "stringValue",

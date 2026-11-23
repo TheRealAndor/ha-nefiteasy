@@ -171,6 +171,7 @@ The entity IDs below are those for the default device name **Nefit**. If you ren
 | Key | Name | Unit | Default | Description |
 | - | - | :-: | :-: | - |
 | `status` | Status | | ✅ | Boiler display code with explanation, see *Status codes* below |
+| `burner_activity` | Burner activity | | ✅ | What the boiler heats now: `central_heating`, `hot_water` or `idle`. Attribute `code` has the raw value. |
 | `supply_temperature` | Supply temperature | °C | ✅ | Temperature of the water to the radiators |
 | `outdoor_temperature` | Outdoor temperature | °C | ✅ | Outdoor temperature |
 | `system_pressure` | System pressure | bar | ✅ | Water pressure of the heating system |
@@ -195,7 +196,9 @@ The entity IDs below are those for the default device name **Nefit**. If you ren
 | Key | Type | Description |
 | - | - | - |
 | `active_program` | select | Clock program 1 or 2 |
-| `hot_water` | switch | Hot water preheating |
+| `hot_water` | switch | **Snel warm water** in the app, for the current user mode; see *Hot water* below |
+| `hot_water_follows_program` | switch | **Volgens programma** in the app; see *Hot water* below |
+| `hot_water_program` | binary sensor | Hot water period of the program; see *Hot water* below |
 | `holiday_mode` | switch | Holiday mode; set the period in the Nefit Easy app |
 | `fireplace_mode` | switch | Other rooms stay warm while a fire burns in the room with the thermostat |
 | `today_as_sunday` / `tomorrow_as_sunday` | switch | Use the Sunday program today or tomorrow |
@@ -206,6 +209,24 @@ The entity IDs below are those for the default device name **Nefit**. If you ren
 | `shower_timer_duration` | number | Shower time in minutes |
 | `temperature_adjustment` | number | Calibrate the measured room temperature (−2 to +2 °C) |
 | `home_entrance_detection` | switch | One switch `Presence <phone>` per phone that is set up for presence detection in the app |
+
+</details>
+
+<details>
+<summary><b>Hot water</b></summary>
+
+The entities follow the hot water settings of the Nefit Easy app. Measured on a Nefit Easy with a combi boiler in November 2026.
+
+| Entity | In the app | What it does |
+| - | - | - |
+| `binary_sensor.nefit_hot_water_state` | | `on` while hot water is on, as the thermostat reports it. Enabled by default. |
+| `switch.nefit_hot_water` | Home → **Snel warm water** | Turns hot water on or off. The thermostat keeps one value for the manual and one for the clock user mode; the switch always shows and changes the one of the current mode. Unavailable while *follows program* is off, like the app hides it then. |
+| `switch.nefit_hot_water_follows_program` | Programma → Warm water → **Volgens programma** | `on`: hot water follows the program and the switch above. `off`: hot water is always on. |
+| `binary_sensor.nefit_hot_water_program` | | `on` during a hot water period of the program. Attributes `since`, `next_switchpoint` (for example `Sa 17:00`) and `next_state`. Disabled by default. |
+
+**In the clock user mode the program turns `hot_water` on at the start of a hot water period** (measured at 17:00). At the end of a period nothing changed in two measurements at 23:00: the switch and the hot water state stayed `on`. To turn hot water off at night, turn the switch off yourself, for example with an automation on `binary_sensor.nefit_hot_water_program`. In the manual user mode the program does nothing and the switch keeps its value.
+
+Changes show within a few seconds. What "off" means at the tap depends on the boiler; see its manual. `sensor.nefit_burner_activity` shows `hot_water` while the boiler heats water.
 
 </details>
 
@@ -376,6 +397,8 @@ Based on upstream 0.4.10. The changes mainly target the unstable connection to t
 <summary><b>New features</b></summary>
 
 - **Connection sensor** `Bosch cloud connection` with the time and reason of outages. It has its own update signal, because Home Assistant does not notify entities after a second failed update in a row.
+- **Hot water that works** (0.5.0). The `hot_water` switch sprang back after every change ([ksya#44](https://github.com/ksya/ha-nefiteasy/issues/44)): it wrote the setting of the current user mode but showed the hot water state, which stays `on` while *follows program* is off in the app. Now the switch shows the setting it writes in both user modes, with new entities for *follows program*, the hot water state and the program. See *Hot water* under *Entities*.
+- **Burner activity sensor** (0.5.0): central heating, hot water or idle.
 - **Diagnostics download** (*Settings → Devices & services → Nefit Easy (Bosch) → ⋮ → Download diagnostics*) with connection state, timeouts, polled endpoints and values. Serial number, access key, password and presence phone names are removed.
 
 </details>

@@ -76,6 +76,19 @@ async def nefit_sensor_wrapper(nefit_config, hass):
 
 
 @pytest.fixture
+async def nefit_binary_sensor_wrapper(nefit_config, hass):
+    """Enable the hot water program sensor before setup."""
+    entity_registry = er.async_get(hass)
+    entity_registry.async_get_or_create(
+        domain="binary_sensor",
+        platform="nefiteasy",
+        unique_id="123456789_hot_water_program",
+        config_entry=nefit_config,
+        original_name="Hot water program",
+    )
+
+
+@pytest.fixture
 async def nefit_select_wrapper(nefit_config, hass):
     """Setups a nefiteasy select wrapper with mocked device."""
     config_entry = nefit_config
@@ -106,7 +119,7 @@ async def nefit_number_wrapper(nefit_config, hass):
 
 
 @pytest.fixture
-@patch("custom_components.nefiteasy.NefitCore")
+@patch("custom_components.nefiteasy.coordinator.NefitCore")
 async def nefit_wrapper(nefit_mock, hass, nefit_config):
     """Setups a nefiteasy wrapper with mocked device."""
     config_entry = nefit_config
@@ -121,7 +134,7 @@ async def nefit_wrapper(nefit_mock, hass, nefit_config):
 
 
 @pytest.fixture
-@patch("custom_components.nefiteasy.NefitCore")
+@patch("custom_components.nefiteasy.coordinator.NefitCore")
 async def nefit_wrapper_precense(nefit_mock, hass, nefit_config):
     """Setups a nefiteasy wrapper with mocked device."""
     config_entry = nefit_config
@@ -211,8 +224,8 @@ class ClientMock:
         """Connect."""
         self.xmppclient.connected_event.set()
 
-        self.serial_number = self.mock.call_args_list[0][1]["serial_number"]
-        self.callback = self.mock.call_args_list[0][1].get("message_callback")
+        self.serial_number = self.mock.call_args_list[-1][1]["serial_number"]
+        self.callback = self.mock.call_args_list[-1][1].get("message_callback")
 
         return
 

@@ -37,6 +37,12 @@ async def test_sensor_states(
     assert state
     assert state.state == "0E: system waiting"
 
+    state = hass.states.get("sensor.nefit_burner_activity")
+    assert state
+    assert state.state == "central_heating"
+    assert state.attributes["code"] == "CH"
+    assert state.attributes["options"] == ["central_heating", "hot_water", "idle"]
+
     state = hass.states.get("sensor.nefit_supply_temperature")
     assert state
     assert state.state == "29.1"

@@ -1,6 +1,9 @@
 {
   "domain": "nefiteasy",
   "name": "Nefit Easy (Bosch)",
+  "after_dependencies": [
+    "recorder"
+  ],
   "categories": [
     "climate.thermostats_heating"
   ],
@@ -14,8 +17,9 @@
   "documentation": "https://github.com/TheRealAndor/ha-nefiteasy",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/TheRealAndor/ha-nefiteasy/issues",
+  "quality_scale": "bronze",
   "requirements": [
     "aionefit-updated==0.17"
   ],
-  "version": "0.4.10.5"
+  "version": "0.5.0b3"
 }

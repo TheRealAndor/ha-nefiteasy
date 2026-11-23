@@ -8,27 +8,26 @@ from types import MappingProxyType
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import NefitEasy
-from .const import DOMAIN, SWITCHES
-from .models import NefitSwitchEntityDescription
-from .nefit_entity import NefitEntity
+from .const import HOT_WATER_CLOCK, HOT_WATER_MANUAL, HOT_WATER_MODE, SWITCHES
+from .coordinator import NefitEasy, NefitEasyConfigEntry
+from .entity import NefitEntity
+from .models import NefitEntityDescription, NefitSwitchEntityDescription
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: ConfigEntry,
+    config_entry: NefitEasyConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Switch setup for nefit easy."""
     entities: list[NefitEntity] = []
 
-    client = hass.data[DOMAIN][config_entry.entry_id]["client"]
+    client = config_entry.runtime_data
     data = config_entry.data
 
     presence_description = None
@@ -36,6 +35,8 @@ async def async_setup_entry(
     for description in SWITCHES:
         if description.key == "hot_water":
             entities.append(NefitHotWater(description, client, data))
+        elif description.key == "hot_water_follows_program":
+            entities.append(NefitHotWaterFollowsProgram(description, client, data))
         elif description.key == "lockui":
             entities.append(NefitSwitch(description, client, data, "true", "false"))
         elif description.key == "weather_dependent":
@@ -165,14 +166,92 @@ class NefitSwitch(NefitEntity, SwitchEntity):
         )
 
 
-class NefitHotWater(NefitSwitch):
-    """Class for nefit hot water entity."""
+class NefitHotWaterSwitch(NefitSwitch):
+    """Base for the hot water switches.
 
-    def get_endpoint(self) -> str:
+    They read the hot water endpoints by their own keys, and ask for the
+    status again after a change so the hot water state follows quickly.
+    """
+
+    async def async_added_to_hass(self) -> None:
+        """Poll the hot water endpoints."""
+        for description in (HOT_WATER_MANUAL, HOT_WATER_CLOCK, HOT_WATER_MODE):
+            await self._client.add_key(description)
+        await super().async_added_to_hass()
+
+    def _value(self) -> Any:
+        """Return the value the switch shows."""
+        raise NotImplementedError
+
+    @property
+    def is_on(self) -> bool:
+        """Get whether the switch is in on state."""
+        return self._value() == self._on_value
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the entity on and refresh the hot water state."""
+        await super().async_turn_on(**kwargs)
+        await self._client.update_ui_status_later(3)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the entity off and refresh the hot water state."""
+        await super().async_turn_off(**kwargs)
+        await self._client.update_ui_status_later(3)
+
+
+class NefitHotWater(NefitHotWaterSwitch):
+    """ "Snel warm water" in the Nefit Easy app.
+
+    The thermostat keeps one value per user mode, so the switch writes and
+    reads the one of the current mode. In the clock mode the program sets it
+    at every switchpoint. When hot water does not follow the program
+    (comfort), hot water is always on and the switch has no effect; the app
+    hides it then, here it is unavailable.
+    """
+
+    def _description(self) -> NefitEntityDescription:
+        """Return the endpoint of the current user mode."""
+        if self.coordinator.data.get("user_mode") == "clock":
+            return HOT_WATER_CLOCK
+        return HOT_WATER_MANUAL
+
+    def _value(self) -> Any:
+        """Return the value of the current user mode."""
+        return self.coordinator.data.get(self._description().key)
+
+    def get_endpoint(self) -> str | None:
         """Get end point."""
-        endpoint = (
-            "dhwOperationClockMode"
-            if self.coordinator.data.get("user_mode") == "clock"
-            else "dhwOperationManualMode"
+        return self._description().url
+
+    @property
+    def available(self) -> bool:
+        """Unavailable while hot water is always on (comfort)."""
+        return (
+            super().available
+            and self.coordinator.data.get(HOT_WATER_MODE.key) != "comfort"
         )
-        return "/dhwCircuits/dhwA/" + endpoint
+
+
+class NefitHotWaterFollowsProgram(NefitHotWaterSwitch):
+    """ "Volgens programma" in the Nefit Easy app.
+
+    On (eco) follows the program and the hot water switch; off (comfort)
+    keeps hot water on all the time.
+    """
+
+    def __init__(
+        self,
+        entity_description: NefitSwitchEntityDescription,
+        client: NefitEasy,
+        data: MappingProxyType[str, Any],
+    ) -> None:
+        """Init the switch with the values of the hot water mode."""
+        super().__init__(entity_description, client, data, "eco", "comfort")
+
+    def _value(self) -> Any:
+        """Return the hot water mode."""
+        return self.coordinator.data.get(HOT_WATER_MODE.key)
+
+    def get_endpoint(self) -> str | None:
+        """Get end point."""
+        return HOT_WATER_MODE.url

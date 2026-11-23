@@ -36,7 +36,7 @@ Ideas and open work for upcoming versions. Tick an item when it ships and mentio
 - [ ] Offer the connection fixes upstream
 - [ ] Mention in ksya#479 that this fork fixed it
 - [ ] Delete the suppress-legacy-xmpp-warning branch
-- [ ] Share the hot water findings in ksya#44
+- [x] Share the hot water findings in ksya#44
 
 ## ✨ Features
 
@@ -227,6 +227,8 @@ ksya#479 reports the deprecated `CONN_CLASS_CLOUD_POLL` constant. This fork remo
 ### Share the hot water findings in ksya#44
 
 ksya#44 ("Hot water switch not working") is open since 2021. A short comment with the measurements (see *Verify the hot water switch*) and a pointer to this fork helps others with the same question.
+
+Done on 23 November 2026: [comment](https://github.com/ksya/ha-nefiteasy/issues/44#issuecomment-7099240835) with the mapping, the cause and an offer of a PR to RobBie1221.
 
 ### Delete the suppress-legacy-xmpp-warning branch
 

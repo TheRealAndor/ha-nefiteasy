@@ -358,16 +358,17 @@ automation:
   - alias: "Nefit: floor heating pump"
     triggers:
       - trigger: state
-        entity_id: sensor.nefit_status
+        entity_id: sensor.nefit_burner_activity
+        not_to: [unavailable, unknown]
     actions:
       - action: >
-          {{ 'switch.turn_on' if trigger.to_state.state.startswith('-H')
+          {{ 'switch.turn_on' if trigger.to_state.state == 'central_heating'
              else 'switch.turn_off' }}
         target:
           entity_id: switch.floor_heating_pump
 ```
 
-The status is polled every 60 seconds by default, so the pump follows the boiler with up to a minute of delay. A shorter **poll interval** in the options makes it follow faster.
+`Burner activity` is `central_heating`, `hot_water` or `idle`, so there is no text to compare. While the boiler heats hot water, the pump stops. During a connection outage the pump keeps its last state. The status is polled every 60 seconds by default, so the pump follows the boiler with up to a minute of delay. A shorter **poll interval** in the options makes it follow faster.
 
 </details>
 

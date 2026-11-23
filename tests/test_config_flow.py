@@ -303,6 +303,9 @@ async def test_reauth(mock_class, hass: HomeAssistant):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"accesskey": "newAccessKey", "password": "newPass"}
         )
+        # The reload runs as a task after the flow; let it finish while the
+        # setup is still patched, or it connects with the real NefitCore.
+        await hass.async_block_till_done()
 
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
